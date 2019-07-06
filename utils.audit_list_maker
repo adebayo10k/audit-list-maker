@@ -1,0 +1,78 @@
+#!/bin/bash
+#: Title		:ls-R_script
+#: Date			:2019-07-05
+#: Author		:adebayo10k
+#: Version		:1.0
+#: Description	:script to contain dummy headers, args test, environment variable \ 
+#: Description	:assignments and exports... common to most new scripts 
+#: Description	:echo this file into the new script
+#: Options		:
+##
+echo "USAGE: $(basename $0)"  
+## at command line:~# 
+##
+#######################################################################
+
+## EXIT CODES:
+E_UNEXPECTED_BRANCH_ENTERED=10
+E_OUT_OF_BOUNDS_BRANCH_ENTERED=11
+E_INCORRECT_NUMBER_OF_ARGS=12
+E_UNEXPECTED_ARG_VALUE=13
+E_REQUIRED_FILE_NOT_FOUND=20
+E_UNKNOWN_RUN_MODE=30
+E_UNKNOWN_EXECUTION_MODE=31
+
+export E_UNEXPECTED_BRANCH_ENTERED
+export E_OUT_OF_BOUNDS_BRANCH_ENTERED
+export E_INCORRECT_NUMBER_OF_ARGS
+export E_UNEXPECTED_ARG_VALUE
+export E_REQUIRED_FILE_NOT_FOUND
+export E_UNKNOWN_RUN_MODE
+export E_UNKNOWN_EXECUTION_MODE
+
+#################################
+
+# TEST COMMAND LINE ARGS
+if [ $# -ne 1 ]
+then
+	echo "Incorrect number of command line args. Exiting now..."
+	echo "Usage: $(basename $0) <PROD|DEV>"
+	exit E_INCORRECT_NUMBER_OF_ARGS
+fi
+
+# if ! [[ "${1}" = 'DEV' -o "${1}" = 'PROD' ]]
+if ! [[ "${1}" = 'DEV' || "${1}" = 'PROD' ]] 
+then
+	echo "Incorrect command line arg.  Exiting now..."
+	echo "Usage: $(basename $0) <PROD|DEV>"
+	exit E_UNEXPECTED_ARG_VALUE
+fi
+
+#################################
+
+# This script is the sole entry point into program, so we set any environment variables here:
+RUN_MODE=$1
+# passed in from command line, this is set to:
+# DEV when running in non-kali test/development environment
+# PROD when running in kali live/production environment
+ 
+export RUN_MODE
+#################################
+
+## TODO: THIS will have to be a relative path, once all
+## directories including the one in which THIS script is put (bin, usr/local/bin)
+## have been specified, exported,are globally known.
+## AND REMEMBER TO SANITISE CODE
+
+echo "This script is called $0"
+echo "The base directory: ${0%'/'"$(basename $0)"}" 
+
+## remove from end of full path: a directory delimiter and the basename
+script_root_dir="${0%'/'"$(basename $0)"}"  
+echo "Script root directory set to: $script_root_dir"
+export script_root_dir
+
+
+
+
+
