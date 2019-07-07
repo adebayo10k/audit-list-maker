@@ -1,17 +1,20 @@
 #!/bin/bash
-#: Title		:ls-R_script
+#: Title		:utils.audit_list_maker
 #: Date			:2019-07-05
 #: Author		:adebayo10k
 #: Version		:1.0
-#: Description	:script to contain dummy headers, args test, environment variable \ 
-#: Description	:assignments and exports... common to most new scripts 
-#: Description	:echo this file into the new script
+#: Description	:create independently stored reference listings of the media files
+#: Description	:on a drive when the backup of those files is not really justified.
+#: Description	:backup reacquire recreate 
 #: Options		:
 ##
-echo "USAGE: $(basename $0)"  
+echo "USAGE: $(basename $0) <PROD|DEV>"  
 ## at command line:~# 
 ##
 #######################################################################
+
+# Except when called by a launcher script this script is the sole entry point into program,
+# and thus the parent process - so we set any environment variables here.
 
 ## EXIT CODES:
 E_UNEXPECTED_BRANCH_ENTERED=10
@@ -50,29 +53,71 @@ fi
 
 #################################
 
-# This script is the sole entry point into program, so we set any environment variables here:
-RUN_MODE=$1
+# SET PROGRAM RUN MODE:
 # passed in from command line, this is set to:
-# DEV when running in non-kali test/development environment
-# PROD when running in kali live/production environment
- 
+# DEV during developemnt. We work on controlled, sample configuration and input data
+# PROD when working on real data using real configuration settings
+RUN_MODE=$1 
 export RUN_MODE
+
 #################################
 
 ## TODO: THIS will have to be a relative path, once all
 ## directories including the one in which THIS script is put (bin, usr/local/bin)
-## have been specified, exported,are globally known.
+## have been specified, exported and globally known.
 ## AND REMEMBER TO SANITISE CODE
 
-echo "This script is called $0"
-echo "The base directory: ${0%'/'"$(basename $0)"}" 
+
+# TEST: change the following to handle changed file path format:
+# file paths to conform to unix standard:
+# no leading / for relative paths
+# trailing / for directories
+# 
+echo "Full path to this script: $0" && echo
 
 ## remove from end of full path: a directory delimiter and the basename
-script_root_dir="${0%'/'"$(basename $0)"}"  
+echo "Current base directory of this script: ${0%'/'"$(basename $0)"}" 
+script_root_dir="${0%'/'"$(basename $0)"}"
 echo "Script root directory set to: $script_root_dir"
 export script_root_dir
 
+echo;echo
 
+## remove from end of full path: just the basename, leaving trailing /
+echo "Current base directory of this script: ${0%"$(basename $0)"}" 
+script_root_dir="${0%"$(basename $0)"}"
+echo "Script root directory set to: $script_root_dir" && echo
+export script_root_dir
+
+#################################
+
+# SET PATH TO CONFIGURATION FILE:
+# set a default location for the config file
+# during development we'll put:
+# - an untracked development version outside $script_root_dir (perhaps in it's parent dir)
+# - a tracked sanitised version in $script_root_dir
+# during service we'll put the config file in an /etc directory:
+# 
+# config sanitiser script located outside $script_root_dir ?
+
+# test config file exists, else fail
+# test for valid file format, else fail
+# export path to config file
+
+config_file_basename=audit_config
+echo "Our configuration filename is set to: $config_file_basename" && echo
+
+## full path to the directory in which the configuration file is located.
+# ad-hoc to keep our stuff hidden for now. Later hope to just hard code this.
+config_file_root_dir="$(cd $script_root_dir; cd ../; pwd)" ## returns with no trailing /
+echo "Our configuration file sits in: $config_file_root_dir" && echo
+
+export $config_file_basename
+export $config_file_root_dir
+
+#################################
+
+echo "exit code: $?" && exit 
 
 
 
