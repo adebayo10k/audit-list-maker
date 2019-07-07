@@ -87,6 +87,7 @@ echo;echo
 echo "Current base directory of this script: ${0%"$(basename $0)"}" 
 script_root_dir="${0%"$(basename $0)"}"
 echo "Script root directory set to: $script_root_dir" && echo
+
 export script_root_dir
 
 #################################
@@ -100,7 +101,6 @@ export script_root_dir
 # 
 # config sanitiser script located outside $script_root_dir ?
 
-# test config file exists, else fail
 # test for valid file format, else fail
 # export path to config file
 
@@ -112,8 +112,76 @@ echo "Our configuration filename is set to: $config_file_basename" && echo
 config_file_root_dir="$(cd $script_root_dir; cd ../; pwd)" ## returns with no trailing /
 echo "Our configuration file sits in: $config_file_root_dir" && echo
 
-export $config_file_basename
-export $config_file_root_dir
+full_path_to_config_file="${config_file_root_dir}/${config_file_basename}"
+echo "The full path to our configuration file is: $full_path_to_config_file" && echo
+
+# TEST THAT CONFIGURATION FILE EXISTS IN THE DEFAULT LOCATION AND IS ACCESSIBLE.
+# testing 'all in one' for now assuming no part will fail
+if [ -d "$config_file_root_dir" ] && cd "$config_file_root_dir" 2>/dev/null && [ -f "$full_path_to_config_file" ] # 2>/dev/null" hides error message
+then
+	# configuration file found and accessible
+	echo "Configuration file found ok" && echo
+	else
+	# -> exit due to failure of any of the above tests:
+	echo "Exiting from function "${FUNCNAME}" in script $(basename $0)"
+	exit E_REQUIRED_FILE_NOT_FOUND
+fi
+
+##########################################################################################################
+
+function test_line_content_valid
+# test that the line is either a comment, empty/blank or string of valid format
+{
+line="${1}"
+
+if [[ "$line" == "#"* ]] # line is a comment
+then
+	echo "This line was found to be a comment:"
+	#echo "$line"
+elif [[ "$line" =~ [[:blank:]] || "$line" == "" ]] # line empty or contains only spaces or tab characters
+then
+	echo "Blank line"
+elif [[ "$line" =~ [[:alnum:]] ]] # line is a string (not commented)
+then
+
+	echo -n "Alphanumeric string  :  "
+	if [[ "$line" == *"=" ]]
+	then
+		echo "Variable Alpha string="
+	##  	
+	elif [[ "$line" =~ ^.*/.*$ ]]	# match the file path pattern TODO: find a better regex
+	then
+		echo "Value Alpha string/"
+	else
+		echo "Failsafe : Couldn't match the Alphanum string"
+		exit 1
+	fi
+
+else
+	echo "None of the above"
+	exit 1
+fi
+
+}
+
+##########################################################################################################
+
+# TEST THAT CONFIGURATION FILE FORMAT IS VALID
+while read lineIn
+do
+
+	test_line_content_valid "$lineIn" 
+
+done < "$full_path_to_config_file" 
+
+echo "exit code after line tests: $?" && echo
+
+## if $? -eq 0 ...
+
+echo "we can use this configuration file"
+export config_file_basename
+export config_file_root_dir
+export full_path_to_config_file
 
 #################################
 
