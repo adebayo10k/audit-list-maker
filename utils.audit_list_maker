@@ -62,12 +62,6 @@ export RUN_MODE
 
 #################################
 
-## TODO: THIS will have to be a relative path, once all
-## directories including the one in which THIS script is put (bin, usr/local/bin)
-## have been specified, exported and globally known.
-## AND REMEMBER TO SANITISE CODE
-
-
 # TEST: change the following to handle changed file path format:
 # file paths to conform to unix standard:
 # no leading / for relative paths
@@ -101,9 +95,6 @@ export script_root_dir
 # 
 # config sanitiser script located outside $script_root_dir ?
 
-# test for valid file format, else fail
-# export path to config file
-
 config_file_basename=audit_config
 echo "Our configuration filename is set to: $config_file_basename" && echo
 
@@ -117,13 +108,15 @@ echo "The full path to our configuration file is: $full_path_to_config_file" && 
 
 # TEST THAT CONFIGURATION FILE EXISTS IN THE DEFAULT LOCATION AND IS ACCESSIBLE.
 # testing 'all in one' for now assuming no part will fail
-if [ -d "$config_file_root_dir" ] && cd "$config_file_root_dir" 2>/dev/null && [ -f "$full_path_to_config_file" ] # 2>/dev/null" hides error message
+if [ -d "$config_file_root_dir" ] 2>/dev/null && \
+cd "$config_file_root_dir" 2>/dev/null && \
+[ -f "$full_path_to_config_file" ] 2>/dev/null
 then
 	# configuration file found and accessible
 	echo "Configuration file found ok" && echo
 	else
 	# -> exit due to failure of any of the above tests:
-	echo "Exiting from function "${FUNCNAME}" in script $(basename $0)"
+	echo "Exiting from function ${FUNCNAME[0]} in script $(basename $0)"
 	exit E_REQUIRED_FILE_NOT_FOUND
 fi
 
@@ -132,35 +125,35 @@ fi
 function test_line_content_valid
 # test that the line is either a comment, empty/blank or string of valid format
 {
-line="${1}"
+	line="${1}"
 
-if [[ "$line" == "#"* ]] # line is a comment
-then
-	echo "This line was found to be a comment:"
-	#echo "$line"
-elif [[ "$line" =~ [[:blank:]] || "$line" == "" ]] # line empty or contains only spaces or tab characters
-then
-	echo "Blank line"
-elif [[ "$line" =~ [[:alnum:]] ]] # line is a string (not commented)
-then
+	if [[ "$line" == "#"* ]] # line is a comment
+	then
+		echo "This line was found to be a comment:"
+		#echo "$line"
+	elif [[ "$line" =~ [[:blank:]] || "$line" == "" ]] # line empty or contains only spaces or tab characters
+	then
+		echo "Blank line"
+	elif [[ "$line" =~ [[:alnum:]] ]] # line is a string (not commented)
+	then
 
-	echo -n "Alphanumeric string  :  "
-	if [[ "$line" == *"=" ]]
-	then
-		echo "Variable Alpha string="
-	##  	
-	elif [[ "$line" =~ ^.*/.*$ ]]	# match the file path pattern TODO: find a better regex
-	then
-		echo "Value Alpha string/"
+		echo -n "Alphanumeric string  :  "
+		if [[ "$line" == *"=" ]]
+		then
+			echo "Variable Alpha string="
+		##  	
+		elif [[ "$line" =~ ^.*/.*$ ]]	# match the file path pattern TODO: find a better regex
+		then
+			echo "Value Alpha string/"
+		else
+			echo "Failsafe : Couldn't match the Alphanum string"
+			exit 1
+		fi
+
 	else
-		echo "Failsafe : Couldn't match the Alphanum string"
+		echo "None of the above"
 		exit 1
 	fi
-
-else
-	echo "None of the above"
-	exit 1
-fi
 
 }
 
@@ -178,10 +171,99 @@ echo "exit code after line tests: $?" && echo
 
 ## if $? -eq 0 ...
 
+# if tests passed, configuration file is accepted and used from here on
 echo "we can use this configuration file"
 export config_file_basename
 export config_file_root_dir
 export full_path_to_config_file
+
+##########################################################################################################
+
+function get_audit_list_storage_directory_config
+{
+	# ignore empty lines and comment lines
+	# sanitise values
+	# - trim leading and trailing space characters
+	# - trim leading / for relative paths
+	# - trim trailing / for all paths
+	# test that directories exist and are accessible
+
+	keyword="audit_list_storage_directory="
+
+	while read lineIn
+	do
+
+		test_line_content_valid "$lineIn" 
+
+	done < "$full_path_to_config_file" 
+
+}
+
+##########################################################################################################
+
+function get_source_directory_config
+{
+	keyword="source_directory="
+
+}
+
+##########################################################################################################
+
+function get_directories_to_ignore_config
+{
+	keyword="directories_to_ignore="
+
+}
+
+##########################################################################################################
+
+function get_secret_content_directories_config
+{
+	keyword="secret_content_directories="
+
+}
+
+##########################################################################################################
+
+# IMPORT CONFIGURATION INTO VARIABLES
+
+# explicitly declaring variables to make code bit more robust - move to top
+audit_list_storage_directory="" # single directory in which....
+source_directory="" # single directory from which....
+declare -a directories_to_ignore # set of one or more directories...
+declare -a secret_content_directories # set of one or more directories...
+
+get_audit_list_storage_directory_config
+get_source_directory_config
+get_directories_to_ignore_config
+get_secret_content_directories_config
+
+# debug printouts:
+echo "audit_list_storage_directory variable now set to: $audit_list_storage_directory" && echo
+echo "source_directory variable now set to: $source_directory" && echo
+echo "directories_to_ignore list now set to:"
+for dir_path in "${directories_to_ignore[@]}"
+do
+	echo "$dir_path"
+done
+echo
+echo "secret_content_directories list now set to:"
+for dir_path in "${secret_content_directories[@]}"
+do
+	echo "$dir_path"
+done
+
+#unset directories_to_ignore
+# multi-dim arrays not poss - find another way
+#declare -a absolute_path_dirs=($audit_list_storage_directory $source_directory)
+#declare -a relative_path_dirs=($directories_to_ignore $secret_content_directories)
+
+#################################
+
+# WRITE SOURCE MEDIA FILENAMES TO THE STORAGE LOCATION
+
+# the designated storage directory must already exist - it won't be created by this script.
+
 
 #################################
 
