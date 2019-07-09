@@ -16,6 +16,17 @@ echo "USAGE: $(basename $0) <PROD|DEV>"
 # Except when called by a launcher script this script is the sole entry point into program,
 # and thus the parent process - so we set any environment variables here.
 
+#######################################################################
+
+# SET PROGRAM RUN MODE:
+# passed in from command line, this is set to:
+# DEV during developemnt. We work on controlled, sample configuration and input data
+# PROD when working on real data using real configuration settings
+RUN_MODE=$1 
+export RUN_MODE
+
+#######################################################################
+
 ## EXIT CODES:
 E_UNEXPECTED_BRANCH_ENTERED=10
 E_OUT_OF_BOUNDS_BRANCH_ENTERED=11
@@ -33,7 +44,23 @@ export E_REQUIRED_FILE_NOT_FOUND
 export E_UNKNOWN_RUN_MODE
 export E_UNKNOWN_EXECUTION_MODE
 
-#################################
+#######################################################################
+
+# GLOBAL VARIABLE DECLARATIONS:
+line_type=""# global...
+source_directory=""# global...
+test_line="" # global...
+#test_dir="" # need to be global?
+
+# explicitly declaring variables to make code bit more robust - move to top
+audit_list_storage_directory="" # single directory in which....
+source_directory="" # single directory from which....
+declare -a directories_to_ignore # set of one or more directories...
+declare -a secret_content_directories # set of one or more directories...
+
+
+
+#######################################################################
 
 # TEST COMMAND LINE ARGS
 if [ $# -ne 1 ]
@@ -51,16 +78,7 @@ then
 	exit E_UNEXPECTED_ARG_VALUE
 fi
 
-#################################
-
-# SET PROGRAM RUN MODE:
-# passed in from command line, this is set to:
-# DEV during developemnt. We work on controlled, sample configuration and input data
-# PROD when working on real data using real configuration settings
-RUN_MODE=$1 
-export RUN_MODE
-
-#################################
+#######################################################################
 
 # TEST: change the following to handle changed file path format:
 # file paths to conform to unix standard:
@@ -84,7 +102,24 @@ echo "Script root directory set to: $script_root_dir" && echo
 
 export script_root_dir
 
-#################################
+#######################################################################
+# USED GENERALLY TO TEST EXISTENCE AND ACCESSIBILITY OF A DIRECTORY
+function test_directory_accessible
+{
+	test_dir="$1"
+
+	if [ -d "$test_dir" ] && cd "$test_dir" 2>/dev/null
+	then
+		# directory file found and accessible
+		echo "directory "$test_dir" found and accessed ok" && echo
+	else
+		# -> exit due to failure of any of the above tests:
+		echo "Exiting from function ${FUNCNAME[0]} in script $(basename $0)"
+		exit E_REQUIRED_FILE_NOT_FOUND
+	fi
+}
+
+#######################################################################
 
 # SET PATH TO CONFIGURATION FILE:
 # set a default location for the config file
@@ -93,7 +128,7 @@ export script_root_dir
 # - a tracked sanitised version in $script_root_dir
 # during service we'll put the config file in an /etc directory:
 # 
-# config sanitiser script located outside $script_root_dir ?
+# config PII sanitiser script located outside $script_root_dir ?
 
 config_file_basename=audit_config
 echo "Our configuration filename is set to: $config_file_basename" && echo
@@ -107,63 +142,70 @@ full_path_to_config_file="${config_file_root_dir}/${config_file_basename}"
 echo "The full path to our configuration file is: $full_path_to_config_file" && echo
 
 # TEST THAT CONFIGURATION FILE EXISTS IN THE DEFAULT LOCATION AND IS ACCESSIBLE.
-# testing 'all in one' for now assuming no part will fail
-if [ -d "$config_file_root_dir" ] 2>/dev/null && \
-cd "$config_file_root_dir" 2>/dev/null && \
-[ -f "$full_path_to_config_file" ] 2>/dev/null
+test_directory_accessible "$config_file_root_dir"
+
+if [ -f "$full_path_to_config_file" ]
 then
 	# configuration file found and accessible
 	echo "Configuration file found ok" && echo
-	else
+else
 	# -> exit due to failure of any of the above tests:
 	echo "Exiting from function ${FUNCNAME[0]} in script $(basename $0)"
 	exit E_REQUIRED_FILE_NOT_FOUND
 fi
 
 ##########################################################################################################
-
-function test_line_content_valid
-# test that the line is either a comment, empty/blank or string of valid format
+# TESTS WHETHER THE LINE IS OF EITHER VALID comment, empty/blank OR string (variable or value) TYPE,
+# SETS THE GLOBAL line_type AND test_line variableS.
+function test_and_set_line_type
 {
-	line="${1}"
+	# TODO: ADD ANOTHER CONFIG FILE VALIDATION TEST:
+	# TEST THAT THE LINE FOLLOWING A VARIABLE= ALPHANUM STRING MUST BE A VALUE/ ALPHANUM STRING, ELSE FAIL
+	test_line="${1}"
+	line_type=""
 
-	if [[ "$line" == "#"* ]] # line is a comment
-	then
-		echo "This line was found to be a comment:"
-		#echo "$line"
-	elif [[ "$line" =~ [[:blank:]] || "$line" == "" ]] # line empty or contains only spaces or tab characters
-	then
-		echo "Blank line"
-	elif [[ "$line" =~ [[:alnum:]] ]] # line is a string (not commented)
-	then
+	#debug printouts:
+	echo "$test_line"
 
+	if [[ "$test_line" == "#"* ]] # line is a comment
+	then
+		line_type="comment"
+		echo "line_type set to: $line_type"
+	elif [[ "$test_line" =~ [[:blank:]] || "$test_line" == "" ]] # line empty or contains only spaces or tab characters
+	then
+		line_type="empty"
+		echo "line_type set to: $line_type"
+	elif [[ "$test_line" =~ [[:alnum:]] ]] # line is a string (not commented)
+	then
 		echo -n "Alphanumeric string  :  "
-		if [[ "$line" == *"=" ]]
+		if [[ "$test_line" == *"=" ]]
 		then
-			echo "Variable Alpha string="
-		##  	
-		elif [[ "$line" =~ ^.*/.*$ ]]	# match the file path pattern TODO: find a better regex
+			line_type="variable_string"
+			echo "line_type set to: $line_type"
+		elif [[ "$test_line" =~ ^.*/.*$ ]]	# match the file path pattern TODO: find a better regex
 		then
-			echo "Value Alpha string/"
+			line_type="value_sting"
+			echo "line_type set to: $line_type"
 		else
 			echo "Failsafe : Couldn't match the Alphanum string"
-			exit 1
+			echo "Exiting from function ${FUNCNAME[0]} in script $(basename $0)"
+			exit $E_UNEXPECTED_BRANCH_ENTERED
 		fi
 
 	else
-		echo "None of the above"
-		exit 1
+		echo "Failsafe : Couldn't match this line with ANY line type!"
+		echo "Exiting from function ${FUNCNAME[0]} in script $(basename $0)"
+		exit $E_UNEXPECTED_BRANCH_ENTERED
 	fi
 
 }
 
 ##########################################################################################################
 
-# TEST THAT CONFIGURATION FILE FORMAT IS VALID
+# TEST WHETHER THE CONFIGURATION FILE FORMAT IS VALID
 while read lineIn
 do
-
-	test_line_content_valid "$lineIn" 
+	test_and_set_line_type "$lineIn" 
 
 done < "$full_path_to_config_file" 
 
@@ -178,48 +220,145 @@ export config_file_root_dir
 export full_path_to_config_file
 
 ##########################################################################################################
-
-function get_audit_list_storage_directory_config
+##########################################################################################################
+# FINAL OPERATION ON VALUE, SO GLOBAL test_line SET HERE. RENAME CONCEPTUALLY DIFFERENT test_line NAMESAKES
+function import_absolute_path_value ##rename?
 {
-	# ignore empty lines and comment lines
+	# sanitise values
+	# - trim leading and trailing space characters
+	# - trim trailing / for all paths
+	test_line="${1}"
+	echo "test line on entering "$FUNCNAME[0]" is: $test_line" && echo
+
+	# TRIM TRAILING AND LEADING SPACES AND TABS
+	test_line=${test_line%%[[:blank:]]}
+	test_line=${test_line##[[:blank:]]}
+
+	# TRIM TRAILING / FOR ABSOLUTE PATHS:
+	test_line=${test_line%'/'}
+	#test_line=${test_line%\/}
+
+	echo "test line after trim cleanups in "$FUNCNAME[0]" is: $test_line" && echo
+
+}
+
+
+##########################################################################################################
+# FINAL OPERATION ON VALUE, SO GLOBAL test_line SET HERE...
+function import_relative_path_value
+{
 	# sanitise values
 	# - trim leading and trailing space characters
 	# - trim leading / for relative paths
 	# - trim trailing / for all paths
-	# test that directories exist and are accessible
+	test_line="${1}"
+	echo "test line on entering "$FUNCNAME[0]" is: $test_line" && echo
 
+	# TRIM TRAILING AND LEADING SPACES AND TABS
+	test_line=${test_line%%[[:blank:]]}
+	test_line=${test_line##[[:blank:]]}
+
+	# TRIM LEADING AND TRAILING / FOR RELATIVE PATHS:
+	test_line=${test_line%'/'}
+	#test_line=${test_line%\/}
+	test_line=${test_line##'/'}
+	#test_line=${test_line##\/}
+
+	echo "test line after trim cleanups in "$FUNCNAME[0]" is: $test_line" && echo
+
+}
+
+##########################################################################################################
+##########################################################################################################
+## VARIABLE 1:
+function get_audit_list_storage_directory_config
+{
 	keyword="audit_list_storage_directory="
+	line_type=""
+	value_collection="OFF"
+
+
+	# LOCAL ARRAY HERE FOR OTHER FUNCTIONS
 
 	while read lineIn
 	do
 
-		test_line_content_valid "$lineIn" 
+		test_and_set_line_type "$lineIn" # interesting for the line FOLLOWING that keyword find
 
-	done < "$full_path_to_config_file" 
+		if [[ $value_collection == "ON" && $line_type == "value_string" ]]
+		then
+			import_absolute_path_value "$lineIn"
+
+
+
+			## ADD ARRAY ELEMENT HERE FOR OTHER FUNCTIONS using test_line GLOBAL 
+
+
+
+		elif [[ $value_collection == "ON" && $line_type != "value_string" ]] # last value has been collected for audit_list_storage_directory
+		then
+			value_collection="OFF" # just because..
+			break # end this while loop, as last value has been collected for audit_list_storage_directory
+		else
+			# value collection must be OFF
+			:
+		fi
+		
+		
+		# switch value collection ON for the NEXT line read
+		if [[ "$lineIn" == "$keyword" ]]
+		then
+			value_collection="ON"
+		fi
+
+	done < "$full_path_to_config_file"
+
+	# ASSIGN 
+	audit_list_storage_directory=$test_line
 
 }
 
 ##########################################################################################################
-
+## VARIABLE 2:
 function get_source_directory_config
 {
 	keyword="source_directory="
 
+	## ACCESS TO RELATIVE DIRECTORIES CAN ONLY BE TESTED ONCE source_directory HAS BEEN TESTED OK AND VARIABLE ASSIGNED
+	# THEREFORE DO THE DIRECTORY ACCESS TEST TOGETHER (IN A SPECIALISED FUNCTION NEAR THE TOP), IN CHOSEN ORDER,
+	# ONLY AFTER ALL DIRECTORIES VALUES HAVE BEEN IMPORTED AND SANITISED OK.
+	# THEREFORE THEY WON'T NEED TO BE SPECIFIED IN ANY PARTICULAR ORDER IN THE CONFIG FILE!
+
+
+
+	# ASSIGN 
+	source_directory=$test_line
+
 }
 
 ##########################################################################################################
-
+## VARIABLE 3:
 function get_directories_to_ignore_config
 {
 	keyword="directories_to_ignore="
 
+	# NOW MULTIPLE LINE VALUES ASSIGNED TO ARRAY ELEMENT, SO BIT DIFFERENCE LOGIC
+
+
+	# ASSIGN # OR COPY THE LOCAL ARRAY
+
 }
 
 ##########################################################################################################
-
+## VARIABLE 4:
 function get_secret_content_directories_config
 {
 	keyword="secret_content_directories="
+
+	# NOW MULTIPLE LINE VALUES ASSIGNED TO ARRAY ELEMENT, SO BIT DIFFERENCE LOGIC
+
+
+	# ASSIGN # OR COPY THE LOCAL ARRAY
 
 }
 
@@ -227,36 +366,57 @@ function get_secret_content_directories_config
 
 # IMPORT CONFIGURATION INTO VARIABLES
 
-# explicitly declaring variables to make code bit more robust - move to top
-audit_list_storage_directory="" # single directory in which....
-source_directory="" # single directory from which....
-declare -a directories_to_ignore # set of one or more directories...
-declare -a secret_content_directories # set of one or more directories...
-
+#TODO: ALL THESE CAN BE DONE IN ONE FUNCTION LATER?, BUT KEEP IT SIMPLE FOR NOW
+# SINGLE FUNCTION WOULD STORE EACH keyword IN AN ARRAY, WHICH WE'D LOOP THROUGH FOR EACH LINE READ
 get_audit_list_storage_directory_config
 get_source_directory_config
 get_directories_to_ignore_config
 get_secret_content_directories_config
 
+# NOW DO ALL THE DIRECTORY ACCESS TESTS FOR IMPORTED PATH VALUES HERE.
+# REMEMBER THAT ORDER IMPORTANT, AS RELATIVE PATHS DEPEND ON ABSOLUTE.
 # debug printouts:
 echo "audit_list_storage_directory variable now set to: $audit_list_storage_directory" && echo
+test_directory_accessible "$audit_list_storage_directory"
+
 echo "source_directory variable now set to: $source_directory" && echo
+test_directory_accessible "$source_directory"
+
 echo "directories_to_ignore list now set to:"
 for dir_path in "${directories_to_ignore[@]}"
 do
 	echo "$dir_path"
 done
+
 echo
+
 echo "secret_content_directories list now set to:"
 for dir_path in "${secret_content_directories[@]}"
 do
 	echo "$dir_path"
 done
 
+
+
+
+
 #unset directories_to_ignore
 # multi-dim arrays not poss - find another way
 #declare -a absolute_path_dirs=($audit_list_storage_directory $source_directory)
 #declare -a relative_path_dirs=($directories_to_ignore $secret_content_directories)
+
+#################################
+# TODO:
+# 0. CREATE 'TEST' SOURCE AND DESTINATION DIRECTORIES THAT DON'T CONTAIN TOO MUCH CONTENT.
+#    REFLECT THESE IN A TEST CONFIGURATION FILE.
+# 	 REMEMBER, ABSOLUTE PATHS WILL REVEAL PII, SO KEEP IN UNTRACKED PLACES.
+# 1. CONTINUE DEVELOPMENT WITH THESE UNTRACKED CONFIG FILES.
+# 2. WHEN ALL BASIC FUNCTIONALITY IS TESTED AND WORKING, CREATE THE USER OPTION FUNCTIONS
+#    TO SELECT WHICH CONFIG FILE TO USE. DEFAULT TO /etc/<project_name>
+# 3. EVEN DURING SERVICE, CONFIG FILES ARE LIKELY TO BE IN UNTRACKED PLACE LIKE /etc , SO 
+#    BEST SOLUTION TO SHARING A SAMPLE CONFIG MAY BE TO ADD A LINE IN THE LAUNCHER SCRIPT
+# 	 THAT CALLS A GENERAL PURPOSE (IF POSSIBLE) SANITISER SCRIPT.
+
 
 #################################
 
