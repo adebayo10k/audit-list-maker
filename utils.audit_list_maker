@@ -50,6 +50,7 @@ export E_UNKNOWN_EXECUTION_MODE
 line_type="" # global...
 source_directory="" # global...
 test_line="" # global...
+config_file_path=
 
 #test_dir="" # need to be global?
 
@@ -115,31 +116,82 @@ echo && echo "Leaving from function ${FUNCNAME[0]}" && echo
 }
 
 #######################################################################
+#######################################################################
+
+echo
+echo "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
+echo "STARTING THE 'SET PATH TO CONFIGURATION FILE' PHASE"
+echo "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
+echo
 
 # SET PATH TO CONFIGURATION FILE:
-# set a default location for the config file
-# during development we'll put:
-# - an untracked development version outside $script_root_dir (perhaps in it's parent dir)
-# - a tracked sanitised version in $script_root_dir
+
 # during service we'll put the config file in an /etc directory:
 # 
-# config PII sanitiser script located outside $script_root_dir? YES
 
-config_file_basename=audit_config
-echo "Our configuration filename is set to: $config_file_basename" && echo
+## TODO: USE OPTION MENU, THE $REPLY VARIABLE... FOR BETTER INTERACTION
+function get_config_file_to_use
+{
+	## 
+	## 
+	echo
+	echo ">>>   Firstly, which configuration file will we be using today...?   :::"
+	echo
+	echo "Enter the full, absolute path (with leading /), or just press Enter to accept the default"
+	echo
+	echo "    "
 
-## TODO: full path to the directory in which the configuration file is located.
-# ad-hoc to keep our stuff hidden for now. Later we'll hardcode, then optionise this.
-config_file_root_dir="$(cd $script_root_dir; cd ../; pwd)" ## returns with no trailing /
-echo "Our configuration file sits in: $config_file_root_dir" && echo
+	read user_config_path
+}
 
-full_path_to_config_file="${config_file_root_dir}/${config_file_basename}"
-echo "The full path to our configuration file is: $full_path_to_config_file" && echo
+echo "	==================================================================="
+echo "	||               Welcome to the AUDIT LIST MAKER                  ||  author: adebayo10k"  
+echo "	==================================================================="
+echo
+echo " Type q to quit."
+echo && sleep 2
+
+get_config_file_to_use
+
+config_file_path=${user_config_path:-"default_config_file"}
+
+if [ "$config_file_path" == "default_config_file" ]
+then
+
+	config_file_basename=audit_config
+	echo "Our configuration filename is set to: $config_file_basename" && echo
+
+	## TODO: full path to the directory in which the configuration file is located.
+	# ad-hoc to keep our stuff hidden for now. Later we'll hardcode, then optionise this.
+	config_file_root_dir="$(cd $script_root_dir; cd ../; pwd)" ## returns with no trailing /
+	echo "Our configuration file sits in: $config_file_root_dir" && echo
+
+	full_path_to_config_file="${config_file_root_dir}/${config_file_basename}"
+	echo "The full path to our configuration file is: $full_path_to_config_file" && echo
+
+elif [ "$config_file_path" == "$user_config_path" ]
+then
+
+	config_file_root_dir="${user_config_path%'/'*}" # also, try [[:alphanum:]] or [A-Za-z0-9_-]
+	echo "Our configuration file sits in: $config_file_root_dir" && echo
+
+	full_path_to_config_file="$user_config_path"
+	echo "The full path to our configuration file is: $full_path_to_config_file" && echo
+	#exit 0
+
+else
+	echo "path to configuration file set to: $config_file_path so I QUIT"
+	echo "failsafe exit" && sleep 2
+	echo "Exiting from function \"${FUNCNAME[0]}\" in script $(basename $0)"
+	exit $E_OUT_OF_BOUNDS_BRANCH_ENTERED
+
+fi	
 
 # TEST THAT CONFIGURATION FILE EXISTS IN THE DEFAULT LOCATION AND IS ACCESSIBLE.
 test_directory_accessible "$config_file_root_dir"
 
-if [ -f "$full_path_to_config_file" ]
+# test for expected file type (regular) and read permission
+if [ -f "$full_path_to_config_file" ] && [ -r "$full_path_to_config_file" ]
 then
 	# configuration file found and accessible
 	echo "Configuration file found ok" && echo
@@ -627,7 +679,7 @@ do
 		continue
 	fi
 
-	# so now assuming we're going to audit input_dir_path...
+	# so now assuming we're OK TO GO to audit input_dir_path... # also, try [[:alphanum:]] or [A-Za-z0-9_-]
 	storage_filename="${input_dir_path##*'/'}.$(date +'%F@%T')" # use the input directory name to name the output file
 
 	output_file="${audit_list_storage_directory}/${storage_filename}"
