@@ -5,34 +5,34 @@
 # Comments and empty lines are ignored as usual.
 #
 # There can be no empty lines between variables and values, or between values assigned to the same variable.
-# variable names donoted by a sting ending with the equals '=' character.
+# Variable names are donoted by a sting ending with the equals '=' character.
 
 ## ########### DIRECTORY IN WHICH WE WANT TO STORE THE LISTS:  ########################
 
-# audit_list_storage_directory variable:
-# This is the location on a separate storage device (possibly) in which you want to store 
-# these lists of media files. It is the directory in which all listing files will be created.
+# destination_holding_dir_fullpath variable:
+# This is the location, possibly on a separate storage device in which you want to store 
+# these lists of media (or whatever) files. It is the directory in which all listing files will be created.
 # This directory will NOT be created if it doesn't already exist.
 # This should be a single file path relative to the root of your filesystem,
 # (ie the full, absolute path with leading /). Only one single value can be assigned here.
 
-audit_list_storage_directory=
+destination_holding_dir_fullpath=
 /home/algo/media_store_test/   
 
 ## ########### DIRECTORIES CONTAINING THE MEDIA FILES WE WANT TO AUDIT:  ########################
 
-# source_directory variable:
+# source_holding_dir_fullpath variable:
 # This is the location under which all directories and files will be considered for auditing. 
 # This should be a single file path relative to the root of your filesystem,
 # (ie the absolute path with leading /).
 
-source_directory=
+source_holding_dir_fullpath=
 /media/algo/EXTHDD_4TB/
 
 # directories_to_ignore:
-# These are the directories within source_directory that we want to ignore.
+# These are the directories within source_holding_dir_fullpath that we want to ignore.
 # We can assign multiple values, one per line. 
-# paths relative to the value given for source_directory
+# paths relative to the value given for source_holding_dir_fullpath
 
 directories_to_ignore=
 /encrypted_research/
@@ -40,9 +40,9 @@ directories_to_ignore=
 /temporary_holding_pen
 
 # secret_content_directories:
-# These are the directories within the source_directory containing confidential content.
+# These are the directories within the source_holding_dir_fullpath containing confidential content.
 # We may want the listings of these contents to be encrypted. 
-# paths relative to the value given for source_directory
+# paths relative to the value given for source_holding_dir_fullpath
 
 secret_content_directories=
 enemy_list
