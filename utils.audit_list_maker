@@ -48,17 +48,30 @@ export E_UNKNOWN_EXECUTION_MODE
 
 # GLOBAL VARIABLE DECLARATIONS:
 line_type="" # global...
-source_directory="" # global...
 test_line="" # global...
-config_file_path=
+full_path_to_config_file= # a full path to a file
 
-#test_dir="" # need to be global?
 
 # explicitly declaring variables to make code bit more robust - move to top
-audit_list_storage_directory="" # single directory in which....
-source_directory="" # single directory from which....
+audit_list_storage_directory="" # single directory in which....# a full path to directory
+source_directory="" # single directory from which....# a full path to directory
 declare -a directories_to_ignore=() # set of one or more directories...
 declare -a secret_content_directories=() # set of one or more directories...
+
+
+script_root_dir ## a full path to directory
+test_dir ## a full path to directory [[[ LOCAL CONTROL IN 1 FUNC ]]]
+user_config_path # a full path to a file
+config_file_basename # a filename
+config_file_root_dir # a full path to directory
+
+dir_path # a directory name [[[ LOCAL CONTROL IN 1 MAIN PLACE ]]]
+test_dir_path # a full path to directory [[[ LOCAL CONTROL IN 1 FUNC ]]]
+ignore_dir # a directory name
+input_dir_path # a full path to directory
+#[[for constency and completeness, need to define: input_dir_name to create the storage_filename?]] # a directory name
+storage_filename # a filename augmented (USE output_....?)
+output_file # # a full path to a file (.. to storage_filename)
 
 
 
@@ -153,12 +166,12 @@ echo && sleep 2
 
 get_config_file_to_use
 
-config_file_path=${user_config_path:-"default_config_file"}
+full_path_to_config_file=${user_config_path:-"default_config_file"}
 
-if [ "$config_file_path" == "default_config_file" ]
+if [ "$full_path_to_config_file" == "default_config_file" ]
 then
 
-	config_file_basename=audit_config
+	config_file_basename="audit_config"
 	echo "Our configuration filename is set to: $config_file_basename" && echo
 
 	## TODO: full path to the directory in which the configuration file is located.
@@ -169,7 +182,7 @@ then
 	full_path_to_config_file="${config_file_root_dir}/${config_file_basename}"
 	echo "The full path to our configuration file is: $full_path_to_config_file" && echo
 
-elif [ "$config_file_path" == "$user_config_path" ]
+elif [ "$full_path_to_config_file" == "$user_config_path" ]
 then
 
 	config_file_root_dir="${user_config_path%'/'*}" # also, try [[:alphanum:]] or [A-Za-z0-9_-]
@@ -180,7 +193,7 @@ then
 	#exit 0
 
 else
-	echo "path to configuration file set to: $config_file_path so I QUIT"
+	echo "path to configuration file set to: $full_path_to_config_file so I QUIT"
 	echo "failsafe exit" && sleep 2
 	echo "Exiting from function \"${FUNCNAME[0]}\" in script $(basename $0)"
 	exit $E_OUT_OF_BOUNDS_BRANCH_ENTERED
