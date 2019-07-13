@@ -11,10 +11,6 @@
 echo "USAGE: $(basename $0) <PROD|DEV>"  
 ## at command line:~# 
 ##
-#######################################################################
-
-# Except when called by a launcher script this script is the sole entry point into program,
-# and thus the parent process - so we set any environment variables here.
 
 #######################################################################
 
@@ -174,9 +170,8 @@ then
 	config_file_name="audit_config"
 	echo "Our configuration filename is set to: $config_file_name" && echo
 
-	## TODO: full path to the directory in which the configuration file is located.
-	# ad-hoc to keep our stuff hidden for now. Later we'll hardcode, then optionise this.
-	config_dir_fullpath="$(cd $script_dir_fullpath; cd ../; pwd)" ## returns with no trailing /
+	#config_dir_fullpath="$(cd $script_dir_fullpath; cd ../; pwd)" ## returns with no trailing /
+	config_dir_fullpath="/etc"
 	echo "Our configuration file sits in: $config_dir_fullpath" && echo
 
 	config_file_fullpath="${config_dir_fullpath}/${config_file_name}"
@@ -713,7 +708,9 @@ do
 
 	# output file created for appended redirect, any problem tell the hand
 	# TODO: better to use find and specify a list of file extensions of interest - investigate later
-	echo;echo
+	echo >> "$destination_output_file_fullpath"
+	echo >> "$destination_output_file_fullpath"
+
 	ls -R "$source_input_dir_fullpath" >> "$destination_output_file_fullpath"  2>/dev/null
 
 
