@@ -47,13 +47,14 @@ line_type="" # global...
 test_line="" # global...
 config_file_fullpath= # a full path to a file
 
-
 # explicitly declaring variables to make code bit more robust - move to top
 destination_holding_dir_fullpath="" # single directory in which....# a full path to directory
 source_holding_dir_fullpath="" # single directory from which....# a full path to directory
 declare -a directories_to_ignore=() # set of one or more directories...
 declare -a secret_content_directories=() # set of one or more directories...
 
+abs_filepath_regex='^(/{1}[A-Za-z0-9\._-~]+)+$' # absolute file path
+all_filepath_regex='^(/?[A-Za-z0-9\._-~]+)+$' # both relative and absolute file path
 
 #script_dir_fullpath ## a full path to directory
 #test_dir_fullpath ## a full path to directory [[[ LOCAL CONTROL IN 1 FUNC ]]]
@@ -96,6 +97,7 @@ fi
 echo "Full path to this script: $0" && echo
 
 ## remove from end of full path: a directory delimiter and the basename
+## TODO: UNLESS SCRIPT 'SOMEHOW' SITS IN THE ROOT DIRECTORY, IN WHICH CASE WE'D JUST REMOVE "$(basename $0)"
 script_dir_fullpath="${0%'/'"$(basename $0)"}"
 echo "Script root directory set to: $script_dir_fullpath"
 export script_dir_fullpath
@@ -240,7 +242,7 @@ function test_and_set_line_type
 		then
 			line_type="variable_string"
 			echo "line_type set to: "$line_type" for "$test_line""
-		elif [[ "$test_line" =~ ^.*/.*$ ]]	# match the file path pattern TODO: find a better regex
+		elif [[ "$test_line" =~ $all_filepath_regex ]]	#
 		then
 			line_type="value_string"
 			echo "line_type set to: "$line_type" for "$test_line""
@@ -609,20 +611,6 @@ do
 done
 
 ##########################################################################################################
-#################################
-# TODO:
-# 0. CREATE 'TEST' SOURCE AND DESTINATION DIRECTORIES THAT DON'T CONTAIN TOO MUCH CONTENT.
-#    REFLECT THESE IN A TEST CONFIGURATION FILE.
-# 	 REMEMBER, ABSOLUTE PATHS WILL REVEAL PII, SO KEEP IN UNTRACKED PLACES.
-# 1. CONTINUE DEVELOPMENT WITH THESE UNTRACKED CONFIG FILES.
-# 2. WHEN ALL BASIC FUNCTIONALITY IS TESTED AND WORKING, CREATE THE USER OPTION FUNCTIONS
-#    TO SELECT WHICH CONFIG FILE TO USE. DEFAULT TO /etc/<project_name>
-# 3. EVEN DURING SERVICE, CONFIG FILES ARE LIKELY TO BE IN UNTRACKED PLACE LIKE /etc , SO 
-#    BEST SOLUTION TO SHARING A SAMPLE CONFIG MAY BE TO ADD A LINE IN THE LAUNCHER SCRIPT
-# 	 THAT CALLS A GENERAL PURPOSE (IF POSSIBLE) SANITISER SCRIPT.
-
-
-##########################################################################################################
 ##########################################################################################################
 
 # WRITE SOURCE MEDIA FILENAMES TO THE STORAGE LOCATION
@@ -668,6 +656,9 @@ echo "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 echo
 
 # remove previous output files during development
+# in service we could either create another subdirectory, continue to delete, keep one or two previous copies or....
+# no risk of sync conflicts, as date augmented filenames mean completely different files
+# 
 rm "${destination_holding_dir_fullpath}"/*
 
 for source_input_dir_fullpath in "${source_holding_dir_fullpath}"/*
@@ -679,7 +670,7 @@ do
 		continue
 	fi
 
-	# find out if the current dir path is configured to be ignored, so we can skip to the next
+	# find out if the current source_input_dir_fullpath is configured to be ignored, so we can skip to the next
 	test_for_ignore_dir "$source_input_dir_fullpath" 
 	return_code=$?; echo "return_code : $return_code"
 	if [[ "$return_code" -eq 0 ]]
@@ -707,7 +698,7 @@ do
 	printf "\n"
 
 	# output file created for appended redirect, any problem tell the hand
-	# TODO: better to use find and specify a list of file extensions of interest - investigate later
+	# TODO: better to use `find` and specify a list of file extensions of interest - investigate later
 	echo >> "$destination_output_file_fullpath"
 	echo >> "$destination_output_file_fullpath"
 
@@ -717,11 +708,34 @@ do
 	## TODO: WE JUST WANT THE COUNT HERE, SO REDIRECT OR PIPE TO sed || USE VARIABLE EXPANSION ON A VARIABLE
 	echo "LINE COUNT OUTPUT FOR FILE: `wc -l "$destination_output_file_fullpath"` "
 
+	#which encryption_services
+
+	#read
+
+	#encryption_services 
+
+	# find out `if` the current source_input_dir_fullpath is configured to be secret, meaning that the current destination_output_file_fullpath
+	# is to be encrypted and replaced. if so, call on those services:
+
+	# we want to replace destination_output_file_fullpath with an encrypted version.
+	# we test for the existence of a known service (using `which encryption_services`)
+	# we call encryption_services, passing it the following parameters:
+	# - the file to be encrypted: destination_output_file_fullpath
+	# - 
+	# when encrypton_services returns control, we test whether the results are as expected before confirming success to user.
+	# we shred the plain text version of the file(s) - simple test `type`|`file`
+	#
+
 
 done	
 
 
+which encryption_services
+echo "YOUR CURRENT SHELL LEVEL IS: $SHLVL"
 
+read
+
+encryption_services "$destination_output_file_fullpath"
 
 
 
