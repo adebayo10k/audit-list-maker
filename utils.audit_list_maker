@@ -50,11 +50,14 @@ config_file_fullpath= # a full path to a file
 # explicitly declaring variables to make code bit more robust - move to top
 destination_holding_dir_fullpath="" # single directory in which....# a full path to directory
 source_holding_dir_fullpath="" # single directory from which....# a full path to directory
-declare -a directories_to_ignore=() # set of one or more directories...
-declare -a secret_content_directories=() # set of one or more directories...
+declare -a directories_to_ignore=() # set of one or more relative path directories...
+declare -a secret_content_directories=() # set of one or more relative path directories...
 
 abs_filepath_regex='^(/{1}[A-Za-z0-9\._-~]+)+$' # absolute file path
 all_filepath_regex='^(/?[A-Za-z0-9\._-~]+)+$' # both relative and absolute file path
+
+declare -a file_fullpaths_to_encrypt=() # set of files created from secret directory data
+string_to_send=""
 
 #script_dir_fullpath ## a full path to directory
 #test_dir_fullpath ## a full path to directory [[[ LOCAL CONTROL IN 1 FUNC ]]]
@@ -160,7 +163,7 @@ echo "	||               Welcome to the AUDIT LIST MAKER                  ||  aut
 echo "	==================================================================="
 echo
 #echo " Type q to quit."
-echo && sleep 1
+echo #&& sleep 1
 
 get_config_file_to_use
 
@@ -623,7 +626,35 @@ done
 #date=$(date +'%F')
 #date=$(date +'%F@%T')
 
-# return a match for dir paths in the ignore array, set a result and return immediately
+##########################################################################################################
+# return a match for dir paths in the secret_dir_name array, set a result and return immediately
+function test_for_secret_dir
+{
+	test_dir_fullpath="$1"
+
+	for secret_dir_name in "${secret_content_directories[@]}"
+	do
+		echo
+		echo "INSIDE THE SECRET TEST FUNCTION:"
+		echo "test_dir_fullpath : $test_dir_fullpath"
+		echo "secret_dir_name : $secret_dir_name"
+
+		if [[ "$test_dir_fullpath" == "${source_holding_dir_fullpath}/$secret_dir_name" ]]
+		then
+			echo "TEST FOUND A MATCH TO LABEL SECRET!!!!!!!!!!!!!!!!!############0000000000 $test_dir_fullpath "
+			result=0 # found, so break out of for loop
+			return "$result" # found, so break out of for loop
+		else 
+			result=1
+		fi
+	done
+
+	return "$result" # returns 1 for failing to find a match
+
+}
+
+##########################################################################################################
+# return a match for dir paths in the directories_to_ignore array, set a result and return (break out) immediately
 function test_for_ignore_dir
 {
 	test_dir_fullpath="$1"
@@ -631,7 +662,7 @@ function test_for_ignore_dir
 	for ignore_dir_name in "${directories_to_ignore[@]}"
 	do
 		echo
-		echo "INSIDE THE TEST FUNCTION:"
+		echo "INSIDE THE IGNORE TEST FUNCTION:"
 		echo "test_dir_fullpath : $test_dir_fullpath"
 		echo "ignore_dir_name : $ignore_dir_name"
 
@@ -648,6 +679,7 @@ function test_for_ignore_dir
 	return "$result" # returns 1 for failing to find a match
 
 }
+##########################################################################################################
 
 echo
 echo "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
@@ -670,7 +702,7 @@ do
 		continue
 	fi
 
-	# find out if the current source_input_dir_fullpath is configured to be ignored, so we can skip to the next
+	# find out if the current source_input_dir_fullpath is configured to be ignored, if so we can skip to the next
 	test_for_ignore_dir "$source_input_dir_fullpath" 
 	return_code=$?; echo "return_code : $return_code"
 	if [[ "$return_code" -eq 0 ]]
@@ -679,14 +711,32 @@ do
 		continue
 	fi
 
-	source_input_dir_name="${source_input_dir_fullpath##*'/'}"
+	# from HERE on we can assume that we're OK TO GO to audit source_input_dir_fullpath...
+	# also, try [[:alphanum:]] or [A-Za-z0-9_-]
 
-	
 
-	# from here we can assume that we're OK TO GO to audit source_input_dir_fullpath... # also, try [[:alphanum:]] or [A-Za-z0-9_-]
+	# we need this in order to name the output file 
+	source_input_dir_name="${source_input_dir_fullpath##*'/'}"	
+
 	destination_output_file_name="${source_input_dir_name}.$(date +'%F@%T')" # use an augmented input directory name to name the output file
 
 	destination_output_file_fullpath="${destination_holding_dir_fullpath}/${destination_output_file_name}"
+
+	# NOW THAT WE HAVE A $destination_output_file_fullpath WE CAN FIND OUT WHETHER IT NEEDS ENCRYPING (AND SO ADDED TO THE ... ARRAY)
+	# BY TESTING THE IF THE CORRESPONDING $source_input_dir_fullpath IS SECRET. WE'LL CALL A FUNCTION TO LOOP THROUGH THE secret_content_directories ARRAY:
+	
+	# IF SO, WE ADD $destination_output_file_fullpath TO AN ... ARRAY THAT WILL BE SENT OVER WHEN encryption_services
+	# IS CALLED ONCE AT THE END
+
+	test_for_secret_dir "$source_input_dir_fullpath" 
+	return_code=$?; echo "return_code : $return_code"
+	if [[ "$return_code" -eq 0 ]]
+	then
+		# NOW APPEND THE ARRAY
+		echo "APPENDING ARRAY  ::::::::::::  WITH $destination_output_file_fullpath   "
+		file_fullpaths_to_encrypt+=( "${destination_output_file_fullpath}" )
+	fi
+
 
 	echo "destination_output_file_fullpath set to : $destination_output_file_fullpath" # debug
 
@@ -694,19 +744,25 @@ do
 	printf "%s\n" "::  $(date +"	[%Y-%m-%d] [%H:%M:%S]")" >> "$destination_output_file_fullpath"
 	printf "%s\n" "@@@@@@@audit@@@@@@@@@@@@@@@@@@@ :: $destination_output_file_fullpath :: @@@@@@@@@@@output@@@@@@@@@@@@@@@" >> "$destination_output_file_fullpath"
 	printf "%s\n" "   @@@@@@@  ::  $(date +"	[%Y-%m-%d] [%H:%M:%S]") ::     @@@@@@@    " >> "$destination_output_file_fullpath"
-	printf "\n"
-	printf "\n"
+
 
 	# output file created for appended redirect, any problem tell the hand
 	# TODO: better to use `find` and specify a list of file extensions of interest - investigate later
-	echo >> "$destination_output_file_fullpath"
+	echo >> "$destination_output_file_fullpath" # empty lines for format
 	echo >> "$destination_output_file_fullpath"
 
-	ls -R "$source_input_dir_fullpath" >> "$destination_output_file_fullpath"  2>/dev/null
+	ls -R "$source_input_dir_fullpath" >> "$destination_output_file_fullpath"  2>/dev/null # suppress stderr
 
 
 	## TODO: WE JUST WANT THE COUNT HERE, SO REDIRECT OR PIPE TO sed || USE VARIABLE EXPANSION ON A VARIABLE
 	echo "LINE COUNT OUTPUT FOR FILE: `wc -l "$destination_output_file_fullpath"` "
+
+	echo
+	echo "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
+	echo "       END WRITE 'FOR' LOOP FOR ONE SOURCE DIRECTORY... NEXT ..."
+	echo "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
+	echo
+
 
 	#which encryption_services
 
@@ -731,13 +787,32 @@ done
 
 
 which encryption_services
-echo "YOUR CURRENT SHELL LEVEL IS: $SHLVL"
+echo "OUR CURRENT SHELL LEVEL IS: $SHLVL"
 
 read
 
-encryption_services "$destination_output_file_fullpath"
 
+for filename in "${file_fullpaths_to_encrypt[@]}"
+do
+	echo "888888888888888888888888888888888888888888888888888888888888888888"
+	string_to_send+="${filename} " # with a trailing space character after each
+done
 
+# now to trim that last trailing space character:
+string_to_send=${string_to_send%[[:blank:]]}
+
+echo "${string_to_send}"
+
+#exit 0
+
+## deliberately unquoted, so arguments are separated by spaces (trim trailing sp)
+encryption_services $string_to_send
+
+# NOW TO PASS THE ARRAY CONTAINING THE FILE(S) TO BE ENCRYPTED
+# BASH ARRAYS ARE NOT 'FIRST CLASS VALUES' SO CAN'T PASS AROUND LIKE ONE THING 
+#encryption_services "${file_fullpaths_to_encrypt[@]}"
+
+#test_for_hash_match_ARRAYS hash_test_batch_array[@]
 
 ##########################################################################################################
 ##########################################################################################################
