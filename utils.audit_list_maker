@@ -100,7 +100,7 @@ fi
 echo "Full path to this script: $0" && echo
 
 ## remove from end of full path: a directory delimiter and the basename
-## TODO: UNLESS SCRIPT 'SOMEHOW' SITS IN THE ROOT DIRECTORY, IN WHICH CASE WE'D JUST REMOVE "$(basename $0)"
+## TODO: if SCRIPT 'SOMEHOW' SITS IN THE ROOT DIRECTORY, WE'D JUST REMOVE "$(basename $0)"
 script_dir_fullpath="${0%'/'"$(basename $0)"}"
 echo "Script root directory set to: $script_dir_fullpath"
 export script_dir_fullpath
@@ -579,7 +579,7 @@ echo "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 echo
 
 
-#TODO: ALL THESE CAN BE DONE IN ONE FUNCTION LATER?, BUT KEEP IT SIMPLE FOR NOW
+#TODO: CAN ALL THESE BE DONE IN ONE FUNCTION LATER?, ANYWAY... KEEP IT SIMPLE FOR NOW
 # SINGLE FUNCTION WOULD STORE EACH keyword IN AN ARRAY, WHICH WE'D LOOP THROUGH FOR EACH LINE READ
 get_destination_holding_dir_fullpath_config
 get_source_holding_dir_fullpath_config
@@ -711,7 +711,7 @@ do
 		continue
 	fi
 
-	# from HERE on we can assume that we're OK TO GO to audit source_input_dir_fullpath...
+	# >>>>>>>>>>>>>>>>>from HERE on we can assume that we're OK TO GO to audit source_input_dir_fullpath...>>>>>>>>>>>>>>>>>
 	# also, try [[:alphanum:]] or [A-Za-z0-9_-]
 
 
@@ -722,11 +722,11 @@ do
 
 	destination_output_file_fullpath="${destination_holding_dir_fullpath}/${destination_output_file_name}"
 
-	# NOW THAT WE HAVE A $destination_output_file_fullpath WE CAN FIND OUT WHETHER IT NEEDS ENCRYPING (AND SO ADDED TO THE ... ARRAY)
-	# BY TESTING THE IF THE CORRESPONDING $source_input_dir_fullpath IS SECRET. WE'LL CALL A FUNCTION TO LOOP THROUGH THE secret_content_directories ARRAY:
+	# NOW THAT WE HAVE A $destination_output_file_fullpath WE CAN FIND OUT WHETHER IT NEEDS ENCRYPING (AND SO ADDED TO THE file_fullpaths_to_encrypt ARRAY),
+	# BY TESTING IF THE CORRESPONDING $source_input_dir_fullpath WAS SECRET. WE'LL CALL A FUNCTION TO LOOP THROUGH THE secret_content_directories ARRAY:
 	
-	# IF SO, WE ADD $destination_output_file_fullpath TO AN ... ARRAY THAT WILL BE SENT OVER WHEN encryption_services
-	# IS CALLED ONCE AT THE END
+	# THE file_fullpaths_to_encrypt ARRAY WILL BE TURNED INTO A SINGLE STRING ARGUMENT string_to_send (WITH SPACE AS IFS)
+	# AND SENT OVER WHEN encryption_services IS CALLED ONCE AT THE END
 
 	test_for_secret_dir "$source_input_dir_fullpath" 
 	return_code=$?; echo "return_code : $return_code"
@@ -764,34 +764,16 @@ do
 	echo
 
 
-	#which encryption_services
-
-	#read
-
-	#encryption_services 
-
-	# find out `if` the current source_input_dir_fullpath is configured to be secret, meaning that the current destination_output_file_fullpath
-	# is to be encrypted and replaced. if so, call on those services:
-
-	# we want to replace destination_output_file_fullpath with an encrypted version.
-	# we test for the existence of a known service (using `which encryption_services`)
-	# we call encryption_services, passing it the following parameters:
-	# - the file to be encrypted: destination_output_file_fullpath
-	# - 
-	# when encrypton_services returns control, we test whether the results are as expected before confirming success to user.
-	# we shred the plain text version of the file(s) - simple test `type`|`file`
-	#
-
-
 done	
 
-
+# we test for the existence of a known service (using `which encryption_services`)
 which encryption_services
 echo "OUR CURRENT SHELL LEVEL IS: $SHLVL"
 
 read
 
-
+# BASH ARRAYS ARE NOT 'FIRST CLASS VALUES' SO CAN'T PASS AROUND LIKE ONE THING - so since we're only intending to make a single call
+# to encryption_services, we need to make an IFS separated string argument
 for filename in "${file_fullpaths_to_encrypt[@]}"
 do
 	echo "888888888888888888888888888888888888888888888888888888888888888888"
@@ -805,19 +787,29 @@ echo "${string_to_send}"
 
 #exit 0
 
-## deliberately unquoted, so arguments are separated by spaces (trim trailing sp)
+# we want to replace destination_output_file_fullpath with an encrypted version...
+# ... so, we call encryption_services script to handle the file encryption jobs
+## command argument is deliberately unquoted, so the default space character IFS DOES separate the string into arguments
 encryption_services $string_to_send
 
-# NOW TO PASS THE ARRAY CONTAINING THE FILE(S) TO BE ENCRYPTED
-# BASH ARRAYS ARE NOT 'FIRST CLASS VALUES' SO CAN'T PASS AROUND LIKE ONE THING 
-#encryption_services "${file_fullpaths_to_encrypt[@]}"
-
-#test_for_hash_match_ARRAYS hash_test_batch_array[@]
-
 ##########################################################################################################
 ##########################################################################################################
 
-echo "exit code: $?" && exit 
+echo && echo "JUST GOT BACK FROM ENCRYPTION SERVICES"
 
+echo "audit_list_maker exit code: $?" && exit 
 
+# TODO:
+# when encrypton_services returns control, we test whether the results are as expected before confirming success to user.
+# we shred the plain text version of the file(s) - simple test `type`|`file`
+# 
+
+# UPDATE THE README.md TO ADD A PRE-REQUISITES SECTION
+
+# UPDATE TO USE OF OPTION SELECTION FUNCTION IF APPROPRIATE
+
+# MULTIPLE UNCONNECTED SOURCE DIRECTORIES
+# REGULAR FILES IN SOURCE DIRECTORIES
+# 	REGULAR FILES TO IGNORE
+#	REGULAR FILES TO ENCRYPT
 
