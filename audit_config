@@ -3,9 +3,10 @@
 # Edit this as necessary for your filesystem
 # The directory paths specified here will determine how the program operates.
 # Comments and empty lines are ignored as usual.
+# THE FIRST LINE OF THIS CONFIGURATION FILE MUST BE A COMMENT 
 #
 # There can be no empty lines between variables and values, or between values assigned to the same variable.
-# Variable names are donoted by a sting ending with the equals '=' character.
+# Variable names are donoted by a string ending with the equals '=' character.
 
 ## ########### DIRECTORY IN WHICH WE WANT TO STORE THE LISTS:  ########################
 
@@ -35,9 +36,9 @@ source_holding_dir_fullpath=
 # paths relative to the value given for source_holding_dir_fullpath
 
 directories_to_ignore=
-/encrypted_research/
-/more_securely_encrypted_stuff/
-/temporary_holding_pen
+encrypted_research/
+more_securely_encrypted_stuff/
+temporary_holding_pen
 
 # secret_content_directories:
 # These are the directories within the source_holding_dir_fullpath containing confidential content.
