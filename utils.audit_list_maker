@@ -8,111 +8,531 @@
 #: Description	:backup reacquire recreate 
 #: Options		:
 ##
-echo "USAGE: $(basename $0) <PROD|DEV>"  
-## at command line:~# 
-##
 
-#######################################################################
 
-# SET PROGRAM RUN MODE:
-# passed in from command line, this is set to:
-# DEV during developemnt. We work on controlled, sample configuration and input data
-# PROD when working on real data using real configuration settings
-RUN_MODE=$1 
-export RUN_MODE
+function main
+{
 
-#######################################################################
+	echo "USAGE: $(basename $0) <PROD|DEV>"  
+	## at command line:~# 
+	##
 
-## EXIT CODES:
-E_UNEXPECTED_BRANCH_ENTERED=10
-E_OUT_OF_BOUNDS_BRANCH_ENTERED=11
-E_INCORRECT_NUMBER_OF_ARGS=12
-E_UNEXPECTED_ARG_VALUE=13
-E_REQUIRED_FILE_NOT_FOUND=20
-E_REQUIRED_PROGRAM_NOT_FOUND=21
-E_UNKNOWN_RUN_MODE=30
-E_UNKNOWN_EXECUTION_MODE=31
+	#######################################################################
 
-export E_UNEXPECTED_BRANCH_ENTERED
-export E_OUT_OF_BOUNDS_BRANCH_ENTERED
-export E_INCORRECT_NUMBER_OF_ARGS
-export E_UNEXPECTED_ARG_VALUE
-export E_REQUIRED_FILE_NOT_FOUND
-export E_REQUIRED_PROGRAM_NOT_FOUND
-export E_UNKNOWN_RUN_MODE
-export E_UNKNOWN_EXECUTION_MODE
+	# SET PROGRAM RUN MODE:
+	# passed in from command line, this is set to:
+	# DEV during developemnt. We work on controlled, sample configuration and input data
+	# PROD when working on real data using real configuration settings
+	RUN_MODE=$1 
+	export RUN_MODE
 
-#######################################################################
+	#######################################################################
 
-# GLOBAL VARIABLE DECLARATIONS:
-line_type="" # global...
-test_line="" # global...
-config_file_fullpath= # a full path to a file
+	## EXIT CODES:
+	E_UNEXPECTED_BRANCH_ENTERED=10
+	E_OUT_OF_BOUNDS_BRANCH_ENTERED=11
+	E_INCORRECT_NUMBER_OF_ARGS=12
+	E_UNEXPECTED_ARG_VALUE=13
+	E_REQUIRED_FILE_NOT_FOUND=20
+	E_REQUIRED_PROGRAM_NOT_FOUND=21
+	E_UNKNOWN_RUN_MODE=30
+	E_UNKNOWN_EXECUTION_MODE=31
 
-# explicitly declaring variables to make code bit more robust - move to top
-destination_holding_dir_fullpath="" # single directory in which....# a full path to directory
-source_holding_dir_fullpath="" # single directory from which....# a full path to directory
-declare -a directories_to_ignore=() # set of one or more relative path directories...
-declare -a secret_content_directories=() # set of one or more relative path directories...
+	export E_UNEXPECTED_BRANCH_ENTERED
+	export E_OUT_OF_BOUNDS_BRANCH_ENTERED
+	export E_INCORRECT_NUMBER_OF_ARGS
+	export E_UNEXPECTED_ARG_VALUE
+	export E_REQUIRED_FILE_NOT_FOUND
+	export E_REQUIRED_PROGRAM_NOT_FOUND
+	export E_UNKNOWN_RUN_MODE
+	export E_UNKNOWN_EXECUTION_MODE
 
-abs_filepath_regex='^(/{1}[A-Za-z0-9\._-~]+)+$' # absolute file (and sanitised directory) path
-all_filepath_regex='^(/?[A-Za-z0-9\._-~]+)+$' # both relative and absolute file (and sanitised directory) path
+	#######################################################################
 
-declare -a file_fullpaths_to_encrypt=() # set of files created from secret directory data
-string_to_send=""
+	# GLOBAL VARIABLE DECLARATIONS:
+	line_type="" # global...
+	test_line="" # global...
+	config_file_fullpath= # a full path to a file
 
-#script_dir_fullpath ## a full path to directory
-#test_dir_fullpath ## a full path to directory [[[ LOCAL CONTROL IN 1 FUNC ]]]
-#user_config_file_fullpath # a full path to a file
-#config_file_name # a filename
-#config_dir_fullpath # a full path to directory
+	# explicitly declaring variables to make code bit more robust - move to top
+	destination_holding_dir_fullpath="" # single directory in which....# a full path to directory
+	source_holding_dir_fullpath="" # single directory from which....# a full path to directory
+	declare -a directories_to_ignore=() # set of one or more relative path directories...
+	declare -a secret_content_directories=() # set of one or more relative path directories...
 
-#dir_name # a directory name [[[ LOCAL CONTROL IN 1 MAIN PLACE ]]]
-#test_dir_fullpath # a full path to directory [[[ LOCAL CONTROL IN 1 FUNC ]]]
-#ignore_dir_name # a directory name
-#source_input_dir_fullpath # a full path to directory
-#source_input_dir_name # a directory name
-#destination_output_file_name # a filename date augmented 
-#destination_output_file_fullpath # # a full path to a file (.. to destination_output_file_name)
+	abs_filepath_regex='^(/{1}[A-Za-z0-9\._-~]+)+$' # absolute file (and sanitised directory) path
+	all_filepath_regex='^(/?[A-Za-z0-9\._-~]+)+$' # both relative and absolute file (and sanitised directory) path
 
-echo "	==================================================================="
-echo "	||               Welcome to the AUDIT LIST MAKER                  ||  author: adebayo10k"  
-echo "	==================================================================="
-echo
-#echo " Type q to quit."
-echo #&& sleep 1
+	declare -a file_fullpaths_to_encrypt=() # set of files created from secret directory data
+	string_to_send=""
 
-#######################################################################
+	#script_dir_fullpath ## a full path to directory
+	#test_dir_fullpath ## a full path to directory [[[ LOCAL CONTROL IN 1 FUNC ]]]
+	#user_config_file_fullpath # a full path to a file
+	#config_file_name # a filename
+	#config_dir_fullpath # a full path to directory
 
-# TEST COMMAND LINE ARGS
-if [ $# -ne 1 ]
-then
-	echo "Incorrect number of command line args. Exiting now..."
-	echo "Usage: $(basename $0) <PROD|DEV>"
-	exit $E_INCORRECT_NUMBER_OF_ARGS
-fi
+	#dir_name # a directory name [[[ LOCAL CONTROL IN 1 MAIN PLACE ]]]
+	#test_dir_fullpath # a full path to directory [[[ LOCAL CONTROL IN 1 FUNC ]]]
+	#ignore_dir_name # a directory name
+	#source_input_dir_fullpath # a full path to directory
+	#source_input_dir_name # a directory name
+	#destination_output_file_name # a filename date augmented 
+	#destination_output_file_fullpath # # a full path to a file (.. to destination_output_file_name)
 
-# if ! [[ "${1}" = 'DEV' -o "${1}" = 'PROD' ]]
-if ! [[ "${1}" = 'DEV' || "${1}" = 'PROD' ]] 
-then
-	echo "Incorrect command line arg.  Exiting now..."
-	echo "Usage: $(basename $0) <PROD|DEV>"
-	exit $E_UNEXPECTED_ARG_VALUE
-fi
+	echo "	==================================================================="
+	echo "	||               Welcome to the AUDIT LIST MAKER                  ||  author: adebayo10k"  
+	echo "	==================================================================="
+	echo
+	#echo " Type q to quit."
+	echo #&& sleep 1
 
-#######################################################################
+	#######################################################################
 
-# SET THE SCRIPT ROOT DIRECTORY (IN WHICH THIS SCRIPT CURRENTLY FINDS ITSELF)
+	# TEST COMMAND LINE ARGS
+	if [ $# -ne 1 ]
+	then
+		echo "Incorrect number of command line args. Exiting now..."
+		echo "Usage: $(basename $0) <PROD|DEV>"
+		exit $E_INCORRECT_NUMBER_OF_ARGS
+	fi
+
+	# if ! [[ "${1}" = 'DEV' -o "${1}" = 'PROD' ]]
+	if ! [[ "${1}" = 'DEV' || "${1}" = 'PROD' ]] 
+	then
+		echo "Incorrect command line arg.  Exiting now..."
+		echo "Usage: $(basename $0) <PROD|DEV>"
+		exit $E_UNEXPECTED_ARG_VALUE
+	fi
+
+	#######################################################################
+
+	# SET THE SCRIPT ROOT DIRECTORY (IN WHICH THIS SCRIPT CURRENTLY FINDS ITSELF)
+	# 
+	echo "Full path to this script: $0" && echo
+
+	## remove from end of full path: a directory delimiter and the basename
+	## TODO: if SCRIPT 'SOMEHOW' SITS IN THE ROOT DIRECTORY, WE'D JUST REMOVE "$(basename $0)"
+	script_dir_fullpath="${0%'/'"$(basename $0)"}"
+	echo "Script root directory set to: $script_dir_fullpath"
+	export script_dir_fullpath
+
+	echo;echo
+
+
+
+
+	echo
+	echo "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
+	echo "STARTING THE 'SET PATH TO CONFIGURATION FILE' PHASE  in script $(basename $0)" 
+	echo "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
+	echo
+
+
+	get_config_file_to_use
+
+	config_file_fullpath=${user_config_file_fullpath:-"default_config_file"}
+
+	if [ "$config_file_fullpath" == "default_config_file" ]
+	then
+
+		config_file_name="audit_config"
+		echo "Our configuration filename is set to: $config_file_name" && echo
+
+		#config_dir_fullpath="$(cd $script_dir_fullpath; cd ../; pwd)" ## returns with no trailing /
+		config_dir_fullpath="/etc"
+		echo "PROVISIONALLY:Our configuration file sits in: $config_dir_fullpath" && echo
+
+		config_file_fullpath="${config_dir_fullpath}/${config_file_name}"
+		echo "PROVISIONALLY:The full path to our configuration file is: $config_file_fullpath" && echo
+
+	elif [ "$config_file_fullpath" == "$user_config_file_fullpath" ]
+	then
+
+		config_dir_fullpath="${user_config_file_fullpath%'/'*}" # also, try [[:alphanum:]] or [A-Za-z0-9_-]
+		echo "PROVISIONALLY:Our configuration file sits in: $config_dir_fullpath" && echo
+
+		config_file_fullpath="$user_config_file_fullpath"
+		echo "PROVISIONALLY:The full path to our configuration file is: $config_file_fullpath" && echo
+		#exit 0
+
+	else
+		echo "path to configuration file set to: $config_file_fullpath so I QUIT"
+		echo "failsafe exit. Unable to set up a configuration file" && sleep 2
+		echo "Exiting from function \"${FUNCNAME[0]}\" in script $(basename $0)"
+		exit $E_OUT_OF_BOUNDS_BRANCH_ENTERED
+
+	fi	
+
+	# WHICHEVER WAY THE CONFIGURATION FILE PATH WAS JUST SET, WE NOW TEST THAT IT IS VALID AND WELL-FORMED:
+	test_file_path_valid_form "$config_file_fullpath"
+	if [ $? -eq 0 ]
+	then
+		echo "Configuration file full path is of VALID FORM"
+	else
+		echo "The valid form test FAILED and returned: $?"
+		echo "Nothing to do now, but to exit..." && echo
+		exit $E_UNEXPECTED_ARG_VALUE
+	fi	
+
+	# if the above test returns ok, ...
+	test_file_path_access "$config_file_fullpath"
+	if [ $? -eq 0 ]
+	then
+		echo "The full path to the CONFIGURATION FILE is: $config_file_fullpath"
+	else
+		echo "The CONFIGURATION FILE path access test FAILED and returned: $?"
+		echo "Nothing to do now, but to exit..." && echo
+		exit $E_REQUIRED_FILE_NOT_FOUND
+	fi
+
+	test_dir_path_access "$config_dir_fullpath"
+	if [ $? -eq 0 ]
+	then
+		echo "The full path to the CONFIGURATION FILE holding directory is: $config_dir_fullpath"
+	else
+		echo "The CONFIGURATION DIRECTORY path access test FAILED and returned: $?"
+		echo "Nothing to do now, but to exit..." && echo
+		exit $E_REQUIRED_FILE_NOT_FOUND
+	fi	
+
+
+	# TEST WHETHER THE CONFIGURATION FILE FORMAT IS VALID
+	while read lineIn
+	do
+		test_and_set_line_type "$lineIn" 
+
+	done < "$config_file_fullpath" 
+
+	echo "exit code after line tests: $?" && echo
+
+	## TODO: if $? -eq 0 ... ANY POINT IN BRINGING BACK A RETURN CODE?
+
+	# if tests passed, configuration file is accepted and used from here on
+	echo "we can use this configuration file" && echo
+	export config_file_name
+	export config_dir_fullpath
+	export config_file_fullpath
+
+
+	## TEST THAT CONFIGURATION FILE EXISTS IN THE DEFAULT LOCATION AND IS ACCESSIBLE.
+	#test_directory_accessible "$config_dir_fullpath"
+	#
+	## test for expected file type (regular) and read permission
+	#if [ -f "$config_file_fullpath" ] && [ -r "$config_file_fullpath" ]
+	#then
+	#	# configuration file found and accessible
+	#	echo "Configuration file found ok" && echo
+	#else
+	#	# -> exit due to failure of any of the above tests:
+	#	echo "Exiting from function ${FUNCNAME[0]} in script $(basename $0)"
+	#	exit $E_REQUIRED_FILE_NOT_FOUND
+	#fi
+
+	# IMPORT CONFIGURATION INTO VARIABLES
+
+	echo
+	echo "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
+	echo "STARTING THE 'IMPORT CONFIGURATION INTO VARIABLES' PHASE in script $(basename $0)"
+	echo "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
+	echo
+
+
+	#TODO: CAN ALL THESE BE DONE IN ONE FUNCTION LATER?, ANYWAY... KEEP IT SIMPLE FOR NOW
+	# SINGLE FUNCTION WOULD STORE EACH keyword IN AN ARRAY, WHICH WE'D LOOP THROUGH FOR EACH LINE READ
+	get_destination_holding_dir_fullpath_config # these should be named set...
+	get_source_holding_dir_fullpath_config
+	get_directories_to_ignore_config
+	get_secret_content_directories_config
+
+	# NOW DO ALL THE DIRECTORY ACCESS TESTS FOR IMPORTED PATH VALUES HERE.
+	# REMEMBER THAT ORDER IS IMPORTANT, AS RELATIVE PATHS DEPEND ON ABSOLUTE.
+	# debug printouts:
+	echo
+	echo "FINALLY, destination_holding_dir_fullpath variable now set to: $destination_holding_dir_fullpath" && echo
+	#test_directory_accessible "${destination_holding_dir_fullpath}"
+
+	# this valid form test works for sanitised directory paths
+	test_file_path_valid_form "$destination_holding_dir_fullpath"
+	if [ $? -eq 0 ]
+	then
+		echo "DESTINATION HOLDING (PARENT) DIRECTORY PATH IS OF VALID FORM"
+	else
+		echo "The valid form test FAILED and returned: $?"
+		echo "Nothing to do now, but to exit..." && echo
+		exit $E_UNEXPECTED_ARG_VALUE
+	fi	
+
+	# if the above test returns ok, ...
+	test_dir_path_access "$destination_holding_dir_fullpath"
+	if [ $? -eq 0 ]
+	then
+		echo "The full path to the DESTINATION HOLDING (PARENT) DIRECTORY is: $destination_holding_dir_fullpath"
+	else
+		echo "The DESTINATION HOLDING (PARENT) DIRECTORY path access test FAILED and returned: $?"
+		echo "Nothing to do now, but to exit..." && echo
+		exit $E_REQUIRED_FILE_NOT_FOUND
+	fi	
+
+	# NEXT...
+
+	echo "FINALLY, source_holding_dir_fullpath variable now set to: $source_holding_dir_fullpath" && echo
+	#test_directory_accessible "$source_holding_dir_fullpath"
+
+	# this valid form test works for sanitised directory paths
+	test_file_path_valid_form "$source_holding_dir_fullpath"
+	if [ $? -eq 0 ]
+	then
+		echo "SOURCE HOLDING (PARENT) DIRECTORY PATH IS OF VALID FORM"
+	else
+		echo "The valid form test FAILED and returned: $?"
+		echo "Nothing to do now, but to exit..." && echo
+		exit $E_UNEXPECTED_ARG_VALUE
+	fi	
+
+	# if the above test returns ok, ...
+	test_dir_path_access "$source_holding_dir_fullpath"
+	if [ $? -eq 0 ]
+	then
+		echo "The full path to the SOURCE HOLDING (PARENT) DIRECTORY is: $source_holding_dir_fullpath"
+	else
+		echo "The SOURCE HOLDING (PARENT) DIRECTORY path access test FAILED and returned: $?"
+		echo "Nothing to do now, but to exit..." && echo
+		exit $E_REQUIRED_FILE_NOT_FOUND
+	fi	
+
+	# NEXT...
+
+	# DO WE REALLY NEED TO TEST ACCESS TO THE DIRECTORIES WE'RE GOING TO IGNORE????
+	for dir_name in "${directories_to_ignore[@]}"
+	do
+		echo -n "FINALLY, directories_to_ignore list ITEM now set to:"
+		echo "$dir_name"
+		#test_directory_accessible "${source_holding_dir_fullpath}/$dir_name"
+
+		# this valid form test works for sanitised directory paths
+		test_file_path_valid_form "${source_holding_dir_fullpath}/$dir_name"
+		if [ $? -eq 0 ]
+		then
+			echo "IGNORABLE DIRECTORY PATH IS OF VALID FORM"
+		else
+			echo "The valid form test FAILED and returned: $?"
+			echo "Nothing to do now, but to exit..." && echo
+			exit $E_UNEXPECTED_ARG_VALUE
+		fi	
+
+		# if the above test returns ok, ...
+		test_dir_path_access "${source_holding_dir_fullpath}/$dir_name"
+		if [ $? -eq 0 ]
+		then
+			echo "The full path to the IGNORABLE DIRECTORY is: ${source_holding_dir_fullpath}/$dir_name"
+		else
+			echo "The IGNORABLE DIRECTORY path access test FAILED and returned: $?"
+			echo "Nothing to do now, but to exit..." && echo
+			exit $E_REQUIRED_FILE_NOT_FOUND
+		fi
+	done
+
+	# NEXT...
+	echo
+
+	for dir_name in "${secret_content_directories[@]}"
+	do
+		echo -n "FINALLY, secret_content_directories list ITEM now set to:"
+		echo "$dir_name"
+		#test_directory_accessible "${source_holding_dir_fullpath}/$dir_name"
+
+		# this valid form test works for sanitised directory paths
+		test_file_path_valid_form "${source_holding_dir_fullpath}/$dir_name"
+		if [ $? -eq 0 ]
+		then
+			echo "SECRET CONTENT DIRECTORY PATH IS OF VALID FORM"
+		else
+			echo "The valid form test FAILED and returned: $?"
+			echo "Nothing to do now, but to exit..." && echo
+			exit $E_UNEXPECTED_ARG_VALUE
+		fi	
+
+		# if the above test returns ok, ...
+		test_dir_path_access "${source_holding_dir_fullpath}/$dir_name"
+		if [ $? -eq 0 ]
+		then
+			echo "The full path to the SECRET CONTENT DIRECTORY is: ${source_holding_dir_fullpath}/$dir_name"
+		else
+			echo "The SECRET CONTENT DIRECTORY path access test FAILED and returned: $?"
+			echo "Nothing to do now, but to exit..." && echo
+			exit $E_REQUIRED_FILE_NOT_FOUND
+		fi
+	done
+
+
+	# WRITE SOURCE MEDIA FILENAMES TO THE STORAGE LOCATION
+	# the designated storage directory must already exist - it won't be created by this script.
+
+	# TODO: if wc -l destination_output_file_fullpath >= 12000; then continue writing to output_file2
+
+	# 
+	#date=$(date +'%T')
+	#date=$(date +'%F')
+	#date=$(date +'%F@%T')
+
+
+	echo
+	echo "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
+	echo "STARTING THE 'WRITE SOURCE MEDIA FILENAMES TO THE STORAGE LOCATION' PHASE in script $(basename $0)"
+	echo "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
+	echo
+
+	# remove previous output files during development
+	# in service we could either create another subdirectory, continue to delete, keep one or two previous copies or....
+	# no risk of sync conflicts, as date augmented filenames mean completely different files
+	# 
+	rm "${destination_holding_dir_fullpath}"/*
+
+	for source_input_dir_fullpath in "${source_holding_dir_fullpath}"/*
+	do
+		# TODO: really? ignore REGULAR files in the source_holding_dir_fullpath? really? yes for now.
+		if ! [[ -d "$source_input_dir_fullpath" ]]
+		then
+			echo "NOT A DIRECTORY ::::::::::::     "$source_input_dir_fullpath""
+			continue
+		fi
+
+		# find out if the current source_input_dir_fullpath is configured to be ignored, if so we can skip to the next
+		test_for_ignore_dir "$source_input_dir_fullpath" 
+		return_code=$?; echo "return_code : $return_code"
+		if [[ "$return_code" -eq 0 ]]
+		then
+			echo "IGNORING ::::::::::::     "$source_input_dir_fullpath""
+			continue
+		fi
+
+		# >>>>>>>>>>>>>>>>>from HERE on we can assume that we're 'OK TO GO' to audit source_input_dir_fullpath...>>>>>>>>>>>>>>>>>
+		# also, try [[:alphanum:]] or [A-Za-z0-9_-]
+
+
+		# we need the directory name (not the whole path to it) in order to name the output file 
+		source_input_dir_name="${source_input_dir_fullpath##*'/'}"
+
+		# use an augmented input directory name to name the output file
+		destination_output_file_name="${source_input_dir_name}.$(date +'%F@%T')" 
+
+		destination_output_file_fullpath="${destination_holding_dir_fullpath}/${destination_output_file_name}"
+
+		# NOW THAT WE HAVE A $destination_output_file_fullpath WE CAN FIND OUT WHETHER IT NEEDS ENCRYPING (AND SO \
+		# +ADDED TO THE file_fullpaths_to_encrypt ARRAY), BY TESTING IF THE CORRESPONDING $source_input_dir_fullpath WAS SECRET.
+		# WE'LL CALL A FUNCTION TO LOOP THROUGH THE secret_content_directories ARRAY:
+		
+		# (THE file_fullpaths_to_encrypt ARRAY WILL BE TURNED INTO A SINGLE STRING ARGUMENT string_to_send (WITH SPACE AS IFS)
+		# AND SENT OVER WHEN encryption_services IS CALLED JUST ONCE AT THE END)
+
+		test_for_secret_dir "$source_input_dir_fullpath" 
+		return_code=$?; echo "return_code : $return_code"
+		if [[ "$return_code" -eq 0 ]]
+		then
+			# NOW APPEND THE ARRAY
+			echo "APPENDING ARRAY  ::::::::::::  WITH $destination_output_file_fullpath   "
+			file_fullpaths_to_encrypt+=( "${destination_output_file_fullpath}" )
+		fi
+
+
+		echo "destination_output_file_fullpath set to : $destination_output_file_fullpath" # debug
+
+		printf "filename: %s\t" $destination_output_file_fullpath >> "$destination_output_file_fullpath"
+		printf "%s\n" "::  $(date +"	[%Y-%m-%d] [%H:%M:%S]")" >> "$destination_output_file_fullpath"
+		printf "%s\n" "@@@@@@@audit@@@@@@@@@@@@@@@@@@@ :: $destination_output_file_fullpath :: @@@@@@@@@@@output@@@@@@@@@@@@@@@" >> "$destination_output_file_fullpath"
+		printf "%s\n" "   @@@@@@@  ::  $(date +"	[%Y-%m-%d] [%H:%M:%S]") ::     @@@@@@@    " >> "$destination_output_file_fullpath"
+
+
+		# output file created for appended redirect, any problem tell the hand
+		# TODO: better to use `find`or `du -...`,  and specify a list of file extensions of interest - investigate later
+		echo >> "$destination_output_file_fullpath" # empty lines for format
+		echo >> "$destination_output_file_fullpath"
+
+		ls -R "$source_input_dir_fullpath" >> "$destination_output_file_fullpath"  2>/dev/null # suppress stderr
+
+
+		## TODO: WE JUST WANT THE COUNT HERE, SO REDIRECT OR PIPE TO sed || USE VARIABLE EXPANSION ON A VARIABLE
+		echo "LINE COUNT OUTPUT FOR FILE: `wc -l "$destination_output_file_fullpath"` "
+
+		echo
+		echo "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
+		echo "       JUST ENDED THE WRITE 'FOR' LOOP FOR ONE SOURCE DIRECTORY... NEXT ..."
+		echo "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
+		echo
+
+
+	done	
+
+	# NOW, AT THIS POINT, ALL AUDIT LISTINGS HAVE BEEN WRITTEN TO THEIR DESTINATIONS.
+	# WE CAN NOW PROCEED TO ENCRYPTION OF OUR SECRET STUFF...
+
+	# we test for the existence of a known script that provides encryption services:
+	which encryption_services
+	if [ $? -eq 0 ]
+	then
+		echo "THE encryption_services PROGRAM WAS FOUND TO BE INSTALLED OK ON THIS HOST SYSTEM"	
+	else
+		echo "FAILED TO FIND THE encryption_services PROGRAM ON THIS SYSTEM, SO NO NOTHING LEFT TO DO BUT EXEET, GOODBYE"
+		exit $E_REQUIRED_PROGRAM_NOT_FOUND
+	fi	
+
+	echo "OUR CURRENT SHELL LEVEL IS: $SHLVL"
+
+	read
+
+	# BASH ARRAYS ARE NOT 'FIRST CLASS VALUES' SO CAN'T BE PASSED AROUND LIKE ONE THING - so since we're only intending to make a single call
+	# to encryption_services, we need to make an IFS separated string argument
+	for filename in "${file_fullpaths_to_encrypt[@]}"
+	do
+		#echo "888888888888888888888888888888888888888888888888888888888888888888"
+		string_to_send+="${filename} " # with a trailing space character after each
+	done
+
+	# now to trim that last trailing space character:
+	string_to_send=${string_to_send%[[:blank:]]}
+
+	echo "${string_to_send}"
+
+	# WHY ARE WE HERE AGAIN..?
+	# we want to replace EACH destination_output_file_fullpath file that we've written, with an encrypted version...
+	# ... so, we call encryption_services script to handle the file encryption jobs
+	## the command argument is deliberately unquoted, so the default space character IFS DOES separate the string into arguments
+	encryption_services $string_to_send
+
+	##########################################################################################################
+	##########################################################################################################
+
+	echo && echo "JUST GOT BACK FROM ENCRYPTION SERVICES"
+
+	echo "audit_list_maker exit code: $?" #&& exit 
+
+} ## end main
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+###############################################################################################
+#### vvvvv FUNCTION DECLARATIONS  vvvvv
+###############################################################################################
 # 
-echo "Full path to this script: $0" && echo
 
-## remove from end of full path: a directory delimiter and the basename
-## TODO: if SCRIPT 'SOMEHOW' SITS IN THE ROOT DIRECTORY, WE'D JUST REMOVE "$(basename $0)"
-script_dir_fullpath="${0%'/'"$(basename $0)"}"
-echo "Script root directory set to: $script_dir_fullpath"
-export script_dir_fullpath
 
-echo;echo
+
+
+
+
+
 
 
 ##########################################################################################################
@@ -514,30 +934,6 @@ echo && echo "Leaving from function ${FUNCNAME[0]}" && echo
 
 ##########################################################################################################
 ##########################################################################################################
-#######################################################################
-# USED GENERALLY TO TEST EXISTENCE AND ACCESSIBILITY OF A DIRECTORY
-#function test_directory_accessible
-##{
-#echo && echo "Entered into function ${FUNCNAME[0]}" && echo
-#
-#	test_dir_fullpath="$1"
-#
-#	if [ -d "$test_dir_fullpath" ] && cd "$test_dir_fullpath" 2>/dev/null
-#	then
-#		# directory file found and accessible
-#		echo "directory "$test_dir_fullpath" found and accessed ok" && echo
-#	else
-#		# -> exit due to failure of any of the above tests:
-#		echo "Exiting from function \"${FUNCNAME[0]}\" in script $(basename $0)"
-#		exit $E_REQUIRED_FILE_NOT_FOUND
-#	fi
-#
-#echo && echo "Leaving from function ${FUNCNAME[0]}" && echo
-#
-#}
-
-##########################################################################################################
-##########################################################################################################
 
 # firstly, we test that the parameter we got is of the correct form for an absolute file | sanitised directory path 
 # if this test fails, there's no point doing anything further
@@ -647,390 +1043,9 @@ function get_config_file_to_use
 
 ################################################################################################
 
-echo
-echo "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
-echo "STARTING THE 'SET PATH TO CONFIGURATION FILE' PHASE  in script $(basename $0)" 
-echo "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
-echo
 
+main "$@"; exit
 
-get_config_file_to_use
-
-config_file_fullpath=${user_config_file_fullpath:-"default_config_file"}
-
-if [ "$config_file_fullpath" == "default_config_file" ]
-then
-
-	config_file_name="audit_config"
-	echo "Our configuration filename is set to: $config_file_name" && echo
-
-	#config_dir_fullpath="$(cd $script_dir_fullpath; cd ../; pwd)" ## returns with no trailing /
-	config_dir_fullpath="/etc"
-	echo "PROVISIONALLY:Our configuration file sits in: $config_dir_fullpath" && echo
-
-	config_file_fullpath="${config_dir_fullpath}/${config_file_name}"
-	echo "PROVISIONALLY:The full path to our configuration file is: $config_file_fullpath" && echo
-
-elif [ "$config_file_fullpath" == "$user_config_file_fullpath" ]
-then
-
-	config_dir_fullpath="${user_config_file_fullpath%'/'*}" # also, try [[:alphanum:]] or [A-Za-z0-9_-]
-	echo "PROVISIONALLY:Our configuration file sits in: $config_dir_fullpath" && echo
-
-	config_file_fullpath="$user_config_file_fullpath"
-	echo "PROVISIONALLY:The full path to our configuration file is: $config_file_fullpath" && echo
-	#exit 0
-
-else
-	echo "path to configuration file set to: $config_file_fullpath so I QUIT"
-	echo "failsafe exit. Unable to set up a configuration file" && sleep 2
-	echo "Exiting from function \"${FUNCNAME[0]}\" in script $(basename $0)"
-	exit $E_OUT_OF_BOUNDS_BRANCH_ENTERED
-
-fi	
-
-# WHICHEVER WAY THE CONFIGURATION FILE PATH WAS JUST SET, WE NOW TEST THAT IT IS VALID AND WELL-FORMED:
-test_file_path_valid_form "$config_file_fullpath"
-if [ $? -eq 0 ]
-then
-	echo "Configuration file full path is of VALID FORM"
-else
-	echo "The valid form test FAILED and returned: $?"
-	echo "Nothing to do now, but to exit..." && echo
-	exit $E_UNEXPECTED_ARG_VALUE
-fi	
-
-# if the above test returns ok, ...
-test_file_path_access "$config_file_fullpath"
-if [ $? -eq 0 ]
-then
-	echo "The full path to the CONFIGURATION FILE is: $config_file_fullpath"
-else
-	echo "The CONFIGURATION FILE path access test FAILED and returned: $?"
-	echo "Nothing to do now, but to exit..." && echo
-	exit $E_REQUIRED_FILE_NOT_FOUND
-fi
-
-test_dir_path_access "$config_dir_fullpath"
-if [ $? -eq 0 ]
-then
-	echo "The full path to the CONFIGURATION FILE holding directory is: $config_dir_fullpath"
-else
-	echo "The CONFIGURATION DIRECTORY path access test FAILED and returned: $?"
-	echo "Nothing to do now, but to exit..." && echo
-	exit $E_REQUIRED_FILE_NOT_FOUND
-fi	
-
-
-# TEST WHETHER THE CONFIGURATION FILE FORMAT IS VALID
-while read lineIn
-do
-	test_and_set_line_type "$lineIn" 
-
-done < "$config_file_fullpath" 
-
-echo "exit code after line tests: $?" && echo
-
-## TODO: if $? -eq 0 ... ANY POINT IN BRINGING BACK A RETURN CODE?
-
-# if tests passed, configuration file is accepted and used from here on
-echo "we can use this configuration file" && echo
-export config_file_name
-export config_dir_fullpath
-export config_file_fullpath
-
-
-## TEST THAT CONFIGURATION FILE EXISTS IN THE DEFAULT LOCATION AND IS ACCESSIBLE.
-#test_directory_accessible "$config_dir_fullpath"
-#
-## test for expected file type (regular) and read permission
-#if [ -f "$config_file_fullpath" ] && [ -r "$config_file_fullpath" ]
-#then
-#	# configuration file found and accessible
-#	echo "Configuration file found ok" && echo
-#else
-#	# -> exit due to failure of any of the above tests:
-#	echo "Exiting from function ${FUNCNAME[0]} in script $(basename $0)"
-#	exit $E_REQUIRED_FILE_NOT_FOUND
-#fi
-
-# IMPORT CONFIGURATION INTO VARIABLES
-
-echo
-echo "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
-echo "STARTING THE 'IMPORT CONFIGURATION INTO VARIABLES' PHASE in script $(basename $0)"
-echo "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
-echo
-
-
-#TODO: CAN ALL THESE BE DONE IN ONE FUNCTION LATER?, ANYWAY... KEEP IT SIMPLE FOR NOW
-# SINGLE FUNCTION WOULD STORE EACH keyword IN AN ARRAY, WHICH WE'D LOOP THROUGH FOR EACH LINE READ
-get_destination_holding_dir_fullpath_config # these should be named set...
-get_source_holding_dir_fullpath_config
-get_directories_to_ignore_config
-get_secret_content_directories_config
-
-# NOW DO ALL THE DIRECTORY ACCESS TESTS FOR IMPORTED PATH VALUES HERE.
-# REMEMBER THAT ORDER IS IMPORTANT, AS RELATIVE PATHS DEPEND ON ABSOLUTE.
-# debug printouts:
-echo
-echo "FINALLY, destination_holding_dir_fullpath variable now set to: $destination_holding_dir_fullpath" && echo
-#test_directory_accessible "${destination_holding_dir_fullpath}"
-
-# this valid form test works for sanitised directory paths
-test_file_path_valid_form "$destination_holding_dir_fullpath"
-if [ $? -eq 0 ]
-then
-	echo "DESTINATION HOLDING (PARENT) DIRECTORY PATH IS OF VALID FORM"
-else
-	echo "The valid form test FAILED and returned: $?"
-	echo "Nothing to do now, but to exit..." && echo
-	exit $E_UNEXPECTED_ARG_VALUE
-fi	
-
-# if the above test returns ok, ...
-test_dir_path_access "$destination_holding_dir_fullpath"
-if [ $? -eq 0 ]
-then
-	echo "The full path to the DESTINATION HOLDING (PARENT) DIRECTORY is: $destination_holding_dir_fullpath"
-else
-	echo "The DESTINATION HOLDING (PARENT) DIRECTORY path access test FAILED and returned: $?"
-	echo "Nothing to do now, but to exit..." && echo
-	exit $E_REQUIRED_FILE_NOT_FOUND
-fi	
-
-# NEXT...
-
-echo "FINALLY, source_holding_dir_fullpath variable now set to: $source_holding_dir_fullpath" && echo
-#test_directory_accessible "$source_holding_dir_fullpath"
-
-# this valid form test works for sanitised directory paths
-test_file_path_valid_form "$source_holding_dir_fullpath"
-if [ $? -eq 0 ]
-then
-	echo "SOURCE HOLDING (PARENT) DIRECTORY PATH IS OF VALID FORM"
-else
-	echo "The valid form test FAILED and returned: $?"
-	echo "Nothing to do now, but to exit..." && echo
-	exit $E_UNEXPECTED_ARG_VALUE
-fi	
-
-# if the above test returns ok, ...
-test_dir_path_access "$source_holding_dir_fullpath"
-if [ $? -eq 0 ]
-then
-	echo "The full path to the SOURCE HOLDING (PARENT) DIRECTORY is: $source_holding_dir_fullpath"
-else
-	echo "The SOURCE HOLDING (PARENT) DIRECTORY path access test FAILED and returned: $?"
-	echo "Nothing to do now, but to exit..." && echo
-	exit $E_REQUIRED_FILE_NOT_FOUND
-fi	
-
-# NEXT...
-
-# DO WE REALLY NEED TO TEST ACCESS TO THE DIRECTORIES WE'RE GOING TO IGNORE????
-for dir_name in "${directories_to_ignore[@]}"
-do
-	echo -n "FINALLY, directories_to_ignore list ITEM now set to:"
-	echo "$dir_name"
-	#test_directory_accessible "${source_holding_dir_fullpath}/$dir_name"
-
-	# this valid form test works for sanitised directory paths
-	test_file_path_valid_form "${source_holding_dir_fullpath}/$dir_name"
-	if [ $? -eq 0 ]
-	then
-		echo "IGNORABLE DIRECTORY PATH IS OF VALID FORM"
-	else
-		echo "The valid form test FAILED and returned: $?"
-		echo "Nothing to do now, but to exit..." && echo
-		exit $E_UNEXPECTED_ARG_VALUE
-	fi	
-
-	# if the above test returns ok, ...
-	test_dir_path_access "${source_holding_dir_fullpath}/$dir_name"
-	if [ $? -eq 0 ]
-	then
-		echo "The full path to the IGNORABLE DIRECTORY is: ${source_holding_dir_fullpath}/$dir_name"
-	else
-		echo "The IGNORABLE DIRECTORY path access test FAILED and returned: $?"
-		echo "Nothing to do now, but to exit..." && echo
-		exit $E_REQUIRED_FILE_NOT_FOUND
-	fi
-done
-
-# NEXT...
-echo
-
-for dir_name in "${secret_content_directories[@]}"
-do
-	echo -n "FINALLY, secret_content_directories list ITEM now set to:"
-	echo "$dir_name"
-	#test_directory_accessible "${source_holding_dir_fullpath}/$dir_name"
-
-	# this valid form test works for sanitised directory paths
-	test_file_path_valid_form "${source_holding_dir_fullpath}/$dir_name"
-	if [ $? -eq 0 ]
-	then
-		echo "SECRET CONTENT DIRECTORY PATH IS OF VALID FORM"
-	else
-		echo "The valid form test FAILED and returned: $?"
-		echo "Nothing to do now, but to exit..." && echo
-		exit $E_UNEXPECTED_ARG_VALUE
-	fi	
-
-	# if the above test returns ok, ...
-	test_dir_path_access "${source_holding_dir_fullpath}/$dir_name"
-	if [ $? -eq 0 ]
-	then
-		echo "The full path to the SECRET CONTENT DIRECTORY is: ${source_holding_dir_fullpath}/$dir_name"
-	else
-		echo "The SECRET CONTENT DIRECTORY path access test FAILED and returned: $?"
-		echo "Nothing to do now, but to exit..." && echo
-		exit $E_REQUIRED_FILE_NOT_FOUND
-	fi
-done
-
-
-# WRITE SOURCE MEDIA FILENAMES TO THE STORAGE LOCATION
-# the designated storage directory must already exist - it won't be created by this script.
-
-# TODO: if wc -l destination_output_file_fullpath >= 12000; then continue writing to output_file2
-
-# 
-#date=$(date +'%T')
-#date=$(date +'%F')
-#date=$(date +'%F@%T')
-
-
-echo
-echo "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
-echo "STARTING THE 'WRITE SOURCE MEDIA FILENAMES TO THE STORAGE LOCATION' PHASE in script $(basename $0)"
-echo "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
-echo
-
-# remove previous output files during development
-# in service we could either create another subdirectory, continue to delete, keep one or two previous copies or....
-# no risk of sync conflicts, as date augmented filenames mean completely different files
-# 
-rm "${destination_holding_dir_fullpath}"/*
-
-for source_input_dir_fullpath in "${source_holding_dir_fullpath}"/*
-do
-	# TODO: really? ignore REGULAR files in the source_holding_dir_fullpath? really? yes for now.
-	if ! [[ -d "$source_input_dir_fullpath" ]]
-	then
-		echo "NOT A DIRECTORY ::::::::::::     "$source_input_dir_fullpath""
-		continue
-	fi
-
-	# find out if the current source_input_dir_fullpath is configured to be ignored, if so we can skip to the next
-	test_for_ignore_dir "$source_input_dir_fullpath" 
-	return_code=$?; echo "return_code : $return_code"
-	if [[ "$return_code" -eq 0 ]]
-	then
-		echo "IGNORING ::::::::::::     "$source_input_dir_fullpath""
-		continue
-	fi
-
-	# >>>>>>>>>>>>>>>>>from HERE on we can assume that we're 'OK TO GO' to audit source_input_dir_fullpath...>>>>>>>>>>>>>>>>>
-	# also, try [[:alphanum:]] or [A-Za-z0-9_-]
-
-
-	# we need the directory name (not the whole path to it) in order to name the output file 
-	source_input_dir_name="${source_input_dir_fullpath##*'/'}"
-
-	# use an augmented input directory name to name the output file
-	destination_output_file_name="${source_input_dir_name}.$(date +'%F@%T')" 
-
-	destination_output_file_fullpath="${destination_holding_dir_fullpath}/${destination_output_file_name}"
-
-	# NOW THAT WE HAVE A $destination_output_file_fullpath WE CAN FIND OUT WHETHER IT NEEDS ENCRYPING (AND SO \
-	# +ADDED TO THE file_fullpaths_to_encrypt ARRAY), BY TESTING IF THE CORRESPONDING $source_input_dir_fullpath WAS SECRET.
-	# WE'LL CALL A FUNCTION TO LOOP THROUGH THE secret_content_directories ARRAY:
-	
-	# (THE file_fullpaths_to_encrypt ARRAY WILL BE TURNED INTO A SINGLE STRING ARGUMENT string_to_send (WITH SPACE AS IFS)
-	# AND SENT OVER WHEN encryption_services IS CALLED JUST ONCE AT THE END)
-
-	test_for_secret_dir "$source_input_dir_fullpath" 
-	return_code=$?; echo "return_code : $return_code"
-	if [[ "$return_code" -eq 0 ]]
-	then
-		# NOW APPEND THE ARRAY
-		echo "APPENDING ARRAY  ::::::::::::  WITH $destination_output_file_fullpath   "
-		file_fullpaths_to_encrypt+=( "${destination_output_file_fullpath}" )
-	fi
-
-
-	echo "destination_output_file_fullpath set to : $destination_output_file_fullpath" # debug
-
-	printf "filename: %s\t" $destination_output_file_fullpath >> "$destination_output_file_fullpath"
-	printf "%s\n" "::  $(date +"	[%Y-%m-%d] [%H:%M:%S]")" >> "$destination_output_file_fullpath"
-	printf "%s\n" "@@@@@@@audit@@@@@@@@@@@@@@@@@@@ :: $destination_output_file_fullpath :: @@@@@@@@@@@output@@@@@@@@@@@@@@@" >> "$destination_output_file_fullpath"
-	printf "%s\n" "   @@@@@@@  ::  $(date +"	[%Y-%m-%d] [%H:%M:%S]") ::     @@@@@@@    " >> "$destination_output_file_fullpath"
-
-
-	# output file created for appended redirect, any problem tell the hand
-	# TODO: better to use `find`or `du -...`,  and specify a list of file extensions of interest - investigate later
-	echo >> "$destination_output_file_fullpath" # empty lines for format
-	echo >> "$destination_output_file_fullpath"
-
-	ls -R "$source_input_dir_fullpath" >> "$destination_output_file_fullpath"  2>/dev/null # suppress stderr
-
-
-	## TODO: WE JUST WANT THE COUNT HERE, SO REDIRECT OR PIPE TO sed || USE VARIABLE EXPANSION ON A VARIABLE
-	echo "LINE COUNT OUTPUT FOR FILE: `wc -l "$destination_output_file_fullpath"` "
-
-	echo
-	echo "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
-	echo "       JUST ENDED THE WRITE 'FOR' LOOP FOR ONE SOURCE DIRECTORY... NEXT ..."
-	echo "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
-	echo
-
-
-done	
-
-# NOW, AT THIS POINT, ALL AUDIT LISTINGS HAVE BEEN WRITTEN TO THEIR DESTINATIONS.
-# WE CAN NOW PROCEED TO ENCRYPTION OF OUR SECRET STUFF...
-
-# we test for the existence of a known script that provides encryption services:
-which encryption_services
-if [ $? -eq 0 ]
-then
-	echo "THE encryption_services PROGRAM WAS FOUND TO BE INSTALLED OK ON THIS HOST SYSTEM"	
-else
-	echo "FAILED TO FIND THE encryption_services PROGRAM ON THIS SYSTEM, SO NO NOTHING LEFT TO DO BUT EXEET, GOODBYE"
-	exit $E_REQUIRED_PROGRAM_NOT_FOUND
-fi	
-
-echo "OUR CURRENT SHELL LEVEL IS: $SHLVL"
-
-read
-
-# BASH ARRAYS ARE NOT 'FIRST CLASS VALUES' SO CAN'T BE PASSED AROUND LIKE ONE THING - so since we're only intending to make a single call
-# to encryption_services, we need to make an IFS separated string argument
-for filename in "${file_fullpaths_to_encrypt[@]}"
-do
-	#echo "888888888888888888888888888888888888888888888888888888888888888888"
-	string_to_send+="${filename} " # with a trailing space character after each
-done
-
-# now to trim that last trailing space character:
-string_to_send=${string_to_send%[[:blank:]]}
-
-echo "${string_to_send}"
-
-# WHY ARE WE HERE AGAIN..?
-# we want to replace EACH destination_output_file_fullpath file that we've written, with an encrypted version...
-# ... so, we call encryption_services script to handle the file encryption jobs
-## the command argument is deliberately unquoted, so the default space character IFS DOES separate the string into arguments
-encryption_services $string_to_send
-
-##########################################################################################################
-##########################################################################################################
-
-echo && echo "JUST GOT BACK FROM ENCRYPTION SERVICES"
-
-echo "audit_list_maker exit code: $?" && exit 
 
 # TODO:
 # when encrypton_services returns control, we test whether the results are as expected before confirming success to user.
