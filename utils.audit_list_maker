@@ -130,6 +130,7 @@ function main
 
 
 	get_config_file_to_use
+	unset user_config_file_fullpath
 
 	config_file_fullpath=${user_config_file_fullpath:-"default_config_file"}
 
@@ -214,20 +215,6 @@ function main
 	export config_dir_fullpath
 	export config_file_fullpath
 
-
-	## TEST THAT CONFIGURATION FILE EXISTS IN THE DEFAULT LOCATION AND IS ACCESSIBLE.
-	#test_directory_accessible "$config_dir_fullpath"
-	#
-	## test for expected file type (regular) and read permission
-	#if [ -f "$config_file_fullpath" ] && [ -r "$config_file_fullpath" ]
-	#then
-	#	# configuration file found and accessible
-	#	echo "Configuration file found ok" && echo
-	#else
-	#	# -> exit due to failure of any of the above tests:
-	#	echo "Exiting from function ${FUNCNAME[0]} in script $(basename $0)"
-	#	exit $E_REQUIRED_FILE_NOT_FOUND
-	#fi
 
 	# IMPORT CONFIGURATION INTO VARIABLES
 
@@ -1023,22 +1010,16 @@ function test_dir_path_access
 	return "$test_result"
 }
 ###############################################################################################
-
-# SET PATH TO CONFIGURATION FILE:
-# during service we'll put the config file in an /etc directory:
-## TODO: USE OPTION MENU, THE $REPLY VARIABLE... FOR BETTER INTERACTION
+# IF USE CASES FOR THE COEXISTENCE OF DIFFERENT CONFIGURATION FILES EVER ARISE
+# WE CAN USE THIS FUNCTION TO USER OPTIONS:
+# USE OPTION MENU, THE $REPLY VARIABLE... FOR BETTER INTERACTION
 function get_config_file_to_use
 {
 	## 
-	## 
 	echo
-	echo ">>>   Firstly, which configuration file will we be using today...?   :::"
+	echo ":::   [ USING THE DEFAULT CONFIGURATION FILE ]   :::"
 	echo
-	echo "Enter the full, absolute path (with leading /), or just press Enter to accept the default"
-	echo
-	echo "    "
-
-	read user_config_file_fullpath
+	sleep 2
 }
 
 ################################################################################################
