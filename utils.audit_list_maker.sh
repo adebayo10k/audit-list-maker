@@ -411,7 +411,7 @@ function main
 		# WE'LL CALL A FUNCTION TO LOOP THROUGH THE secret_content_directories ARRAY:
 		
 		# (THE file_fullpaths_to_encrypt ARRAY WILL BE TURNED INTO A SINGLE STRING ARGUMENT string_to_send (WITH SPACE AS IFS)
-		# AND SENT OVER WHEN encryption_services IS CALLED JUST ONCE AT THE END)
+		# AND SENT OVER WHEN encryption_services.sh IS CALLED JUST ONCE AT THE END)
 
 		test_for_secret_dir "$source_input_dir_fullpath" 
 		return_code=$?; echo "return_code : $return_code"
@@ -455,12 +455,12 @@ function main
 	# WE CAN NOW PROCEED TO ENCRYPTION OF OUR SECRET STUFF...
 
 	# we test for the existence of a known script that provides encryption services:
-	which encryption_services
+	which encryption_services.sh
 	if [ $? -eq 0 ]
 	then
-		echo "THE encryption_services PROGRAM WAS FOUND TO BE INSTALLED OK ON THIS HOST SYSTEM"	
+		echo "THE encryption_services.sh PROGRAM WAS FOUND TO BE INSTALLED OK ON THIS HOST SYSTEM"	
 	else
-		echo "FAILED TO FIND THE encryption_services PROGRAM ON THIS SYSTEM, SO NO NOTHING LEFT TO DO BUT EXEET, GOODBYE"
+		echo "FAILED TO FIND THE encryption_services.sh PROGRAM ON THIS SYSTEM, SO NO NOTHING LEFT TO DO BUT EXEET, GOODBYE"
 		exit $E_REQUIRED_PROGRAM_NOT_FOUND
 	fi	
 
@@ -469,7 +469,7 @@ function main
 	read
 
 	# BASH ARRAYS ARE NOT 'FIRST CLASS VALUES' SO CAN'T BE PASSED AROUND LIKE ONE THING - so since we're only intending to make a single call
-	# to encryption_services, we need to make an IFS separated string argument
+	# to encryption_services.sh, we need to make an IFS separated string argument
 	for filename in "${file_fullpaths_to_encrypt[@]}"
 	do
 		#echo "888888888888888888888888888888888888888888888888888888888888888888"
@@ -483,9 +483,9 @@ function main
 
 	# WHY ARE WE HERE AGAIN..?
 	# we want to replace EACH destination_output_file_fullpath file that we've written, with an encrypted version...
-	# ... so, we call encryption_services script to handle the file encryption jobs
+	# ... so, we call encryption_services.sh script to handle the file encryption jobs
 	## the command argument is deliberately unquoted, so the default space character IFS DOES separate the string into arguments
-	encryption_services $string_to_send
+	encryption_services.sh $string_to_send
 
 	##########################################################################################################
 	##########################################################################################################
