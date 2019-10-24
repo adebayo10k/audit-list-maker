@@ -1,5 +1,5 @@
 #!/bin/bash
-#: Title		:utils.audit_list_maker
+#: Title		:utils.audit_list_maker.sh
 #: Date			:2019-07-05
 #: Author		:adebayo10k
 #: Version		:1.0
