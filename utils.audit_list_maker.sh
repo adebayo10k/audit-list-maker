@@ -583,7 +583,7 @@ function test_for_ignore_dir
 function sanitise_absolute_path_value ##
 {
 
-echo && echo "Entered into function ${FUNCNAME[0]}" && echo
+echo && echo "ENTERED INTO FUNCTION ${FUNCNAME[0]}" && echo
 
 	# sanitise values
 	# - trim leading and trailing space characters
@@ -596,12 +596,15 @@ echo && echo "Entered into function ${FUNCNAME[0]}" && echo
 	test_line=${test_line##[[:blank:]]}
 
 	# TRIM TRAILING / FOR ABSOLUTE PATHS:
-	test_line=${test_line%'/'}
-	#test_line=${test_line%\/}
+    while [[ "$test_line" == *'/' ]]
+    do
+        echo "FOUND TRAILING SLASH"
+        test_line=${test_line%'/'}
+    done 
 
 	echo "test line after trim cleanups in "${FUNCNAME[0]}" is: $test_line" && echo
 
-echo && echo "Leaving from function ${FUNCNAME[0]}" && echo
+echo && echo "LEAVING FROM FUNCTION ${FUNCNAME[0]}" && echo
 
 }
 
@@ -611,7 +614,7 @@ echo && echo "Leaving from function ${FUNCNAME[0]}" && echo
 function sanitise_relative_path_value
 {
 
-echo && echo "Entered into function ${FUNCNAME[0]}" && echo
+echo && echo "ENTERED INTO FUNCTION ${FUNCNAME[0]}" && echo
 
 	# sanitise values
 	# - trim leading and trailing space characters
@@ -625,14 +628,19 @@ echo && echo "Entered into function ${FUNCNAME[0]}" && echo
 	test_line=${test_line##[[:blank:]]}
 
 	# TRIM LEADING AND TRAILING / FOR RELATIVE PATHS:
-	test_line=${test_line%'/'}
-	#test_line=${test_line%\/}
+    while [[ "$test_line" == *'/' ]]
+    do
+        echo "FOUND TRAILING SLASH"
+        test_line=${test_line%'/'}
+    done 
+
+	# TRIM LEADING / FOR RELATIVE PATHS:
+	# afer this, test_line should just be the directory name
 	test_line=${test_line##'/'}
-	#test_line=${test_line##\/}
 
 	echo "test line after trim cleanups in "${FUNCNAME[0]}" is: $test_line" && echo
 
-echo && echo "Leaving from function ${FUNCNAME[0]}" && echo
+echo && echo "LEAVING FROM FUNCTION ${FUNCNAME[0]}" && echo
 
 }
 
@@ -645,7 +653,7 @@ echo && echo "Leaving from function ${FUNCNAME[0]}" && echo
 function test_and_set_line_type
 {
 
-#echo && echo "Entered into function ${FUNCNAME[0]}" && echo
+#echo && echo "ENTERED INTO FUNCTION ${FUNCNAME[0]}" && echo
 
 	# TODO: ADD ANOTHER CONFIG FILE VALIDATION TEST:
 	# TEST THAT THE LINE FOLLOWING A VARIABLE= ALPHANUM STRING MUST BE A VALUE/ ALPHANUM STRING, ELSE FAIL
@@ -686,7 +694,7 @@ function test_and_set_line_type
 		exit $E_UNEXPECTED_BRANCH_ENTERED
 	fi
 
-#echo && echo "Leaving from function ${FUNCNAME[0]}" && echo
+#echo && echo "LEAVING FROM FUNCTION ${FUNCNAME[0]}" && echo
 
 }
 
@@ -698,7 +706,7 @@ function test_and_set_line_type
 function get_destination_holding_dir_fullpath_config
 {
 
-echo && echo "Entered into function ${FUNCNAME[0]}" && echo
+echo && echo "ENTERED INTO FUNCTION ${FUNCNAME[0]}" && echo
 
 	keyword="destination_holding_dir_fullpath="
 	line_type=""
@@ -749,7 +757,7 @@ echo && echo "Entered into function ${FUNCNAME[0]}" && echo
 	echo "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
 
 
-echo && echo "Leaving from function ${FUNCNAME[0]}" && echo
+echo && echo "LEAVING FROM FUNCTION ${FUNCNAME[0]}" && echo
 
 }
 
@@ -758,7 +766,7 @@ echo && echo "Leaving from function ${FUNCNAME[0]}" && echo
 function get_source_holding_dir_fullpath_config
 {
 
-echo && echo "Entered into function ${FUNCNAME[0]}" && echo
+echo && echo "ENTERED INTO FUNCTION ${FUNCNAME[0]}" && echo
 
 	keyword="source_holding_dir_fullpath="
 	## ACCESS TO RELATIVE DIRECTORIES CAN ONLY BE TESTED ONCE source_holding_dir_fullpath
@@ -800,7 +808,7 @@ echo && echo "Entered into function ${FUNCNAME[0]}" && echo
 	source_holding_dir_fullpath=$1 # test_line was just set globally in sanitise_absolute_path_value function
 	set -- # unset that positional parameter we used to get test_line out of that while read subprocess
 
-echo && echo "Leaving from function ${FUNCNAME[0]}" && echo
+echo && echo "LEAVING FROM FUNCTION ${FUNCNAME[0]}" && echo
 
 }
 
@@ -809,7 +817,7 @@ echo && echo "Leaving from function ${FUNCNAME[0]}" && echo
 function get_directories_to_ignore_config
 {
 
-echo && echo "Entered into function ${FUNCNAME[0]}" && echo
+echo && echo "ENTERED INTO FUNCTION ${FUNCNAME[0]}" && echo
 
 	keyword="directories_to_ignore="
 
@@ -863,7 +871,7 @@ echo && echo "Entered into function ${FUNCNAME[0]}" && echo
 	# ASSIGN THE LOCAL ARRAY BY CLONING
 	directories_to_ignore=("${path_list[@]}")
 
-echo && echo "Leaving from function ${FUNCNAME[0]}" && echo
+echo && echo "LEAVING FROM FUNCTION ${FUNCNAME[0]}" && echo
 
 }
 
@@ -872,7 +880,7 @@ echo && echo "Leaving from function ${FUNCNAME[0]}" && echo
 function get_secret_content_directories_config
 {
 
-echo && echo "Entered into function ${FUNCNAME[0]}" && echo
+echo && echo "ENTERED INTO FUNCTION ${FUNCNAME[0]}" && echo
 
 	keyword="secret_content_directories="
 
@@ -915,7 +923,7 @@ echo && echo "Entered into function ${FUNCNAME[0]}" && echo
 	# ASSIGN THE LOCAL ARRAY BY CLONING
 	secret_content_directories=("${path_list[@]}")
 
-echo && echo "Leaving from function ${FUNCNAME[0]}" && echo
+echo && echo "LEAVING FROM FUNCTION ${FUNCNAME[0]}" && echo
 
 }
 
@@ -927,7 +935,7 @@ echo && echo "Leaving from function ${FUNCNAME[0]}" && echo
 # 
 function test_file_path_valid_form
 {
-	echo && echo "Entered into function ${FUNCNAME[0]}" && echo
+	echo && echo "ENTERED INTO FUNCTION ${FUNCNAME[0]}" && echo
 
 	test_result=
 	test_file_fullpath=$1
@@ -947,7 +955,7 @@ function test_file_path_valid_form
 	fi 
 
 
-	echo && echo "Leaving from function ${FUNCNAME[0]}" && echo
+	echo && echo "LEAVING FROM FUNCTION ${FUNCNAME[0]}" && echo
 
 	return "$test_result"
 }
@@ -957,7 +965,7 @@ function test_file_path_valid_form
 # 
 function test_file_path_access
 {
-	echo && echo "Entered into function ${FUNCNAME[0]}" && echo
+	echo && echo "ENTERED INTO FUNCTION ${FUNCNAME[0]}" && echo
 
 	test_result=
 	test_file_fullpath=$1
@@ -977,7 +985,7 @@ function test_file_path_access
 		return $E_REQUIRED_FILE_NOT_FOUND
 	fi
 
-	echo && echo "Leaving from function ${FUNCNAME[0]}" && echo
+	echo && echo "LEAVING FROM FUNCTION ${FUNCNAME[0]}" && echo
 
 	return "$test_result"
 }
@@ -986,7 +994,7 @@ function test_file_path_access
 # 
 function test_dir_path_access
 {
-	echo && echo "Entered into function ${FUNCNAME[0]}" && echo
+	echo && echo "ENTERED INTO FUNCTION ${FUNCNAME[0]}" && echo
 
 	test_result=
 	test_dir_fullpath=$1
@@ -1005,7 +1013,7 @@ function test_dir_path_access
 		return $E_REQUIRED_FILE_NOT_FOUND
 	fi
 
-	echo && echo "Leaving from function ${FUNCNAME[0]}" && echo
+	echo && echo "LEAVING FROM FUNCTION ${FUNCNAME[0]}" && echo
 
 	return "$test_result"
 }
