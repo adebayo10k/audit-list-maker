@@ -13,9 +13,28 @@
 function main
 {
 
+	echo "OUR CURRENT SHELL LEVEL IS: $SHLVL"
+
 	echo "USAGE: $(basename $0) <PROD|DEV>"  
-	## at command line:~# 
-	##
+
+	# Display a program header and give user option to leave if here in error:
+    echo
+    echo -e "		\033[33m===================================================================\033[0m";
+    echo -e "		\033[33m||               Welcome to the AUDIT LIST MAKER                 ||  author: adebayo10k\033[0m";  
+    echo -e "		\033[33m===================================================================\033[0m";
+    echo
+    echo " Type q to quit NOW, or press ENTER to continue."
+    echo && sleep 1
+    read last_chance
+
+    case $last_chance in 
+	[qQ])	echo
+			echo "Goodbye!" && sleep 1
+			exit 0
+				;;
+	*) 		echo "You're IN..." && echo && sleep 1
+		 		;;
+    esac 
 
 	#######################################################################
 
@@ -79,13 +98,6 @@ function main
 	#source_input_dir_name # a directory name
 	#destination_output_file_name # a filename date augmented 
 	#destination_output_file_fullpath # # a full path to a file (.. to destination_output_file_name)
-
-	echo "	==================================================================="
-	echo "	||               Welcome to the AUDIT LIST MAKER                  ||  author: adebayo10k"  
-	echo "	==================================================================="
-	echo
-	#echo " Type q to quit."
-	echo #&& sleep 1
 
 	#######################################################################
 
