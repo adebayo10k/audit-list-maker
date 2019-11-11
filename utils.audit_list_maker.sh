@@ -12,6 +12,23 @@
 
 function main
 {
+	# TEST COMMAND LINE ARGS
+	if [ $# -ne 1 ]
+	then
+		echo "Incorrect number of command line args. Exiting now..."
+		echo "Usage: $(basename $0) <PROD|DEV>"
+		exit $E_INCORRECT_NUMBER_OF_ARGS
+	fi
+
+	# if ! [[ "${1}" = 'DEV' -o "${1}" = 'PROD' ]]
+	if ! [[ "${1}" = 'DEV' || "${1}" = 'PROD' ]] 
+	then
+		echo "Incorrect command line arg.  Exiting now..."
+		echo "Usage: $(basename $0) <PROD|DEV>"
+		exit $E_UNEXPECTED_ARG_VALUE
+	fi
+
+	#######################################################################
 
 	echo "OUR CURRENT SHELL LEVEL IS: $SHLVL"
 
@@ -101,24 +118,6 @@ function main
 
 	#######################################################################
 
-	# TEST COMMAND LINE ARGS
-	if [ $# -ne 1 ]
-	then
-		echo "Incorrect number of command line args. Exiting now..."
-		echo "Usage: $(basename $0) <PROD|DEV>"
-		exit $E_INCORRECT_NUMBER_OF_ARGS
-	fi
-
-	# if ! [[ "${1}" = 'DEV' -o "${1}" = 'PROD' ]]
-	if ! [[ "${1}" = 'DEV' || "${1}" = 'PROD' ]] 
-	then
-		echo "Incorrect command line arg.  Exiting now..."
-		echo "Usage: $(basename $0) <PROD|DEV>"
-		exit $E_UNEXPECTED_ARG_VALUE
-	fi
-
-	#######################################################################
-
 	# SET THE SCRIPT ROOT DIRECTORY (IN WHICH THIS SCRIPT CURRENTLY FINDS ITSELF)
 	# 
 	echo "Full path to this script: $0" && echo
@@ -131,104 +130,19 @@ function main
 
 	echo;echo
 
+	config_file_fullpath="/etc/audit_config"
+
+	echo "Opening your editor now..." && echo && sleep 3
+    sudo nano "$config_file_fullpath" # /etc exists, so no need to test access etc.
+    # no need to validate config file path here, since we've just edited the config file!
+
+	check_config_file_content
+
+	exit 0
 
 
-
-	echo
-	echo "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
-	echo "STARTING THE 'SET PATH TO CONFIGURATION FILE' PHASE  in script $(basename $0)" 
-	echo "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
-	echo
-
-
-	get_config_file_to_use
-	unset user_config_file_fullpath
-
-	config_file_fullpath=${user_config_file_fullpath:-"default_config_file"}
-
-	if [ "$config_file_fullpath" == "default_config_file" ]
-	then
-
-		config_file_name="audit_config"
-		echo "Our configuration filename is set to: $config_file_name" && echo
-
-		#config_dir_fullpath="$(cd $script_dir_fullpath; cd ../; pwd)" ## returns with no trailing /
-		config_dir_fullpath="/etc"
-		echo "PROVISIONALLY:Our configuration file sits in: $config_dir_fullpath" && echo
-
-		config_file_fullpath="${config_dir_fullpath}/${config_file_name}"
-		echo "PROVISIONALLY:The full path to our configuration file is: $config_file_fullpath" && echo
-
-	elif [ "$config_file_fullpath" == "$user_config_file_fullpath" ]
-	then
-
-		config_dir_fullpath="${user_config_file_fullpath%'/'*}" # also, try [[:alphanum:]] or [A-Za-z0-9_-]
-		echo "PROVISIONALLY:Our configuration file sits in: $config_dir_fullpath" && echo
-
-		config_file_fullpath="$user_config_file_fullpath"
-		echo "PROVISIONALLY:The full path to our configuration file is: $config_file_fullpath" && echo
-		#exit 0
-
-	else
-		echo "path to configuration file set to: $config_file_fullpath so I QUIT"
-		echo "failsafe exit. Unable to set up a configuration file" && sleep 2
-		echo "Exiting from function \"${FUNCNAME[0]}\" in script $(basename $0)"
-		exit $E_OUT_OF_BOUNDS_BRANCH_ENTERED
-
-	fi	
-
-	# WHICHEVER WAY THE CONFIGURATION FILE PATH WAS JUST SET, WE NOW TEST THAT IT IS VALID AND WELL-FORMED:
-	test_file_path_valid_form "$config_file_fullpath"
-	if [ $? -eq 0 ]
-	then
-		echo "Configuration file full path is of VALID FORM"
-	else
-		echo "The valid form test FAILED and returned: $?"
-		echo "Nothing to do now, but to exit..." && echo
-		exit $E_UNEXPECTED_ARG_VALUE
-	fi	
-
-	# if the above test returns ok, ...
-	test_file_path_access "$config_file_fullpath"
-	if [ $? -eq 0 ]
-	then
-		echo "The full path to the CONFIGURATION FILE is: $config_file_fullpath"
-	else
-		echo "The CONFIGURATION FILE path access test FAILED and returned: $?"
-		echo "Nothing to do now, but to exit..." && echo
-		exit $E_REQUIRED_FILE_NOT_FOUND
-	fi
-
-	test_dir_path_access "$config_dir_fullpath"
-	if [ $? -eq 0 ]
-	then
-		echo "The full path to the CONFIGURATION FILE holding directory is: $config_dir_fullpath"
-	else
-		echo "The CONFIGURATION DIRECTORY path access test FAILED and returned: $?"
-		echo "Nothing to do now, but to exit..." && echo
-		exit $E_REQUIRED_FILE_NOT_FOUND
-	fi	
-
-
-	# TEST WHETHER THE CONFIGURATION FILE FORMAT IS VALID
-	while read lineIn
-	do
-		test_and_set_line_type "$lineIn" 
-
-	done < "$config_file_fullpath" 
-
-	echo "exit code after line tests: $?" && echo
-
-	## TODO: if $? -eq 0 ... ANY POINT IN BRINGING BACK A RETURN CODE?
-
-	# if tests passed, configuration file is accepted and used from here on
-	echo "we can use this configuration file" && echo
-	export config_file_name
-	export config_dir_fullpath
-	export config_file_fullpath
-
-
-	# IMPORT CONFIGURATION INTO VARIABLES
+	# IMPORT CONFIGURATION INTO PROGRAM VARIABLES
+	import_audit_configuration
 
 	echo
 	echo "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
@@ -535,6 +449,43 @@ function main
 
 
 ##########################################################################################################
+###########################################################
+# 
+function import_audit_configuration()
+{
+    # ignore comment lines, space char lines, empty lines ....
+    :
+    # for line in read src_dir_path dst_dir_path file_extension
+
+    #    < "$config_file_fullpath" 
+
+}
+
+###########################################################
+# test whether the configuration files' format is valid,
+# and that each line contains something we're expecting
+function check_config_file_content()
+{
+	while read lineIn
+	do
+		# any content problems handled in the following function:
+        test_and_set_line_type "$lineIn"
+        return_code="$?"
+        echo "exit code for tests on that line was: $return_code"
+        if [ $return_code -eq 0 ]
+        then
+            # if tested line contained expected content
+            # :
+            echo "That line was expected!" && echo
+        else
+            echo "That line was NOT expected!"
+            echo "Exiting from function \"${FUNCNAME[0]}\" in script \"$(basename $0)\""
+            exit 0
+        fi
+
+	done < "$config_file_fullpath" 
+
+}
 ##########################################################################################################
 # return a match for dir paths in the secret_dir_name array, set a result and return immediately
 function test_for_secret_dir
@@ -664,25 +615,21 @@ echo && echo "LEAVING FROM FUNCTION ${FUNCNAME[0]}" && echo
 # SETS THE GLOBAL line_type AND test_line variableS.
 function test_and_set_line_type
 {
-
-#echo && echo "ENTERED INTO FUNCTION ${FUNCNAME[0]}" && echo
+	#echo && echo "ENTERED INTO FUNCTION ${FUNCNAME[0]}" && echo
 
 	# TODO: ADD ANOTHER CONFIG FILE VALIDATION TEST:
 	# TEST THAT THE LINE FOLLOWING A VARIABLE= ALPHANUM STRING MUST BE A VALUE/ ALPHANUM STRING, ELSE FAIL
 	test_line="${1}"
 	line_type=""
 
-	#debug printouts:
-	#echo "$test_line"
-
 	if [[ "$test_line" == "#"* ]] # line is a comment
 	then
 		line_type="comment"
-		#echo "line_type set to: $line_type"
+		echo "line_type set to: $line_type"
 	elif [[ "$test_line" =~ [[:blank:]] || "$test_line" == "" ]] # line empty or contains only spaces or tab characters
 	then
 		line_type="empty"
-		#echo "line_type set to: $line_type"
+		echo "line_type set to: $line_type"
 	elif [[ "$test_line" =~ [[:alnum:]] ]] # line is a string (not commented)
 	then
 		echo -n "Alphanumeric string  :  "
@@ -695,18 +642,17 @@ function test_and_set_line_type
 			line_type="value_string"
 			echo "line_type set to: "$line_type" for "$test_line""
 		else
+            echo "line_type set to: \"UNKNOWN\" for "${test_line}""
 			echo "Failsafe : Couldn't match the Alphanum string"
-			echo "Exiting from function ${FUNCNAME[0]} in script $(basename $0)"
-			exit $E_UNEXPECTED_BRANCH_ENTERED
+			return $E_UNEXPECTED_BRANCH_ENTERED
 		fi
-
 	else
+	    echo "line_type set to: \"UNKNOWN\" for "$test_line""
 		echo "Failsafe : Couldn't match this line with ANY line type!"
-		echo "Exiting from function ${FUNCNAME[0]} in script $(basename $0)"
-		exit $E_UNEXPECTED_BRANCH_ENTERED
+		return $E_UNEXPECTED_BRANCH_ENTERED
 	fi
 
-#echo && echo "LEAVING FROM FUNCTION ${FUNCNAME[0]}" && echo
+	#echo && echo "LEAVING FROM FUNCTION ${FUNCNAME[0]}" && echo
 
 }
 
@@ -1030,20 +976,6 @@ function test_dir_path_access
 	return "$test_result"
 }
 ###############################################################################################
-# IF USE CASES FOR THE COEXISTENCE OF DIFFERENT CONFIGURATION FILES EVER ARISE
-# WE CAN USE THIS FUNCTION TO USER OPTIONS:
-# USE OPTION MENU, THE $REPLY VARIABLE... FOR BETTER INTERACTION
-function get_config_file_to_use
-{
-	## 
-	echo
-	echo ":::   [ USING THE DEFAULT CONFIGURATION FILE ]   :::"
-	echo
-	sleep 2
-}
-
-################################################################################################
-
 
 main "$@"; exit
 
