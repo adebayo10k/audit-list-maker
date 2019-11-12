@@ -97,12 +97,10 @@ function main
 	declare -a secret_content_directories=() # set of one or more relative path directories...
 
 	abs_filepath_regex='^(/{1}[A-Za-z0-9\._-~]+)+$' # absolute file (and sanitised directory) path
-	all_filepath_regex='^(/?[A-Za-z0-9\._-~]+)+$' # both relative and absolute file (and sanitised directory) path
+	all_filepath_regex='^(/?[A-Za-z0-9\._-~]+)+$' # both relative and absolute file (and sanitised directory) path . CAREFUL, THIS.
+    # MATCHES NEARLY ANY STRING!
 
-	declare -a file_fullpaths_to_encrypt=() # set of files created from secret directory data
-	string_to_send=""
-
-	#script_dir_fullpath ## a full path to directory
+	declare -a file_fullpaths_to_encrypt=() # setdestinationory
 	#test_dir_fullpath ## a full path to directory [[[ LOCAL CONTROL IN 1 FUNC ]]]
 	#user_config_file_fullpath # a full path to a file
 	#config_file_name # a filename
@@ -132,151 +130,17 @@ function main
 
 	config_file_fullpath="/etc/audit_config"
 
-	echo "Opening your editor now..." && echo && sleep 3
+	echo "Opening your editor now..." && echo && sleep 2
     sudo nano "$config_file_fullpath" # /etc exists, so no need to test access etc.
     # no need to validate config file path here, since we've just edited the config file!
 
+	#
 	check_config_file_content
-
-	exit 0
-
 
 	# IMPORT CONFIGURATION INTO PROGRAM VARIABLES
 	import_audit_configuration
 
-	echo
-	echo "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
-	echo "STARTING THE 'IMPORT CONFIGURATION INTO VARIABLES' PHASE in script $(basename $0)"
-	echo "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
-	echo
-
-
-	#TODO: CAN ALL THESE BE DONE IN ONE FUNCTION LATER?, ANYWAY... KEEP IT SIMPLE FOR NOW
-	# SINGLE FUNCTION WOULD STORE EACH keyword IN AN ARRAY, WHICH WE'D LOOP THROUGH FOR EACH LINE READ
-	get_destination_holding_dir_fullpath_config # these should be named set...
-	get_source_holding_dir_fullpath_config
-	get_directories_to_ignore_config
-	get_secret_content_directories_config
-
-	# NOW DO ALL THE DIRECTORY ACCESS TESTS FOR IMPORTED PATH VALUES HERE.
-	# REMEMBER THAT ORDER IS IMPORTANT, AS RELATIVE PATHS DEPEND ON ABSOLUTE.
-	# debug printouts:
-	echo
-	echo "FINALLY, destination_holding_dir_fullpath variable now set to: $destination_holding_dir_fullpath" && echo
-	#test_directory_accessible "${destination_holding_dir_fullpath}"
-
-	# this valid form test works for sanitised directory paths
-	test_file_path_valid_form "$destination_holding_dir_fullpath"
-	if [ $? -eq 0 ]
-	then
-		echo "DESTINATION HOLDING (PARENT) DIRECTORY PATH IS OF VALID FORM"
-	else
-		echo "The valid form test FAILED and returned: $?"
-		echo "Nothing to do now, but to exit..." && echo
-		exit $E_UNEXPECTED_ARG_VALUE
-	fi	
-
-	# if the above test returns ok, ...
-	test_dir_path_access "$destination_holding_dir_fullpath"
-	if [ $? -eq 0 ]
-	then
-		echo "The full path to the DESTINATION HOLDING (PARENT) DIRECTORY is: $destination_holding_dir_fullpath"
-	else
-		echo "The DESTINATION HOLDING (PARENT) DIRECTORY path access test FAILED and returned: $?"
-		echo "Nothing to do now, but to exit..." && echo
-		exit $E_REQUIRED_FILE_NOT_FOUND
-	fi	
-
-	# NEXT...
-
-	echo "FINALLY, source_holding_dir_fullpath variable now set to: $source_holding_dir_fullpath" && echo
-	#test_directory_accessible "$source_holding_dir_fullpath"
-
-	# this valid form test works for sanitised directory paths
-	test_file_path_valid_form "$source_holding_dir_fullpath"
-	if [ $? -eq 0 ]
-	then
-		echo "SOURCE HOLDING (PARENT) DIRECTORY PATH IS OF VALID FORM"
-	else
-		echo "The valid form test FAILED and returned: $?"
-		echo "Nothing to do now, but to exit..." && echo
-		exit $E_UNEXPECTED_ARG_VALUE
-	fi	
-
-	# if the above test returns ok, ...
-	test_dir_path_access "$source_holding_dir_fullpath"
-	if [ $? -eq 0 ]
-	then
-		echo "The full path to the SOURCE HOLDING (PARENT) DIRECTORY is: $source_holding_dir_fullpath"
-	else
-		echo "The SOURCE HOLDING (PARENT) DIRECTORY path access test FAILED and returned: $?"
-		echo "Nothing to do now, but to exit..." && echo
-		exit $E_REQUIRED_FILE_NOT_FOUND
-	fi	
-
-	# NEXT...
-
-	# DO WE REALLY NEED TO TEST ACCESS TO THE DIRECTORIES WE'RE GOING TO IGNORE????
-	for dir_name in "${directories_to_ignore[@]}"
-	do
-		echo -n "FINALLY, directories_to_ignore list ITEM now set to:"
-		echo "$dir_name"
-		#test_directory_accessible "${source_holding_dir_fullpath}/$dir_name"
-
-		# this valid form test works for sanitised directory paths
-		test_file_path_valid_form "${source_holding_dir_fullpath}/$dir_name"
-		if [ $? -eq 0 ]
-		then
-			echo "IGNORABLE DIRECTORY PATH IS OF VALID FORM"
-		else
-			echo "The valid form test FAILED and returned: $?"
-			echo "Nothing to do now, but to exit..." && echo
-			exit $E_UNEXPECTED_ARG_VALUE
-		fi	
-
-		# if the above test returns ok, ...
-		test_dir_path_access "${source_holding_dir_fullpath}/$dir_name"
-		if [ $? -eq 0 ]
-		then
-			echo "The full path to the IGNORABLE DIRECTORY is: ${source_holding_dir_fullpath}/$dir_name"
-		else
-			echo "The IGNORABLE DIRECTORY path access test FAILED and returned: $?"
-			echo "Nothing to do now, but to exit..." && echo
-			exit $E_REQUIRED_FILE_NOT_FOUND
-		fi
-	done
-
-	# NEXT...
-	echo
-
-	for dir_name in "${secret_content_directories[@]}"
-	do
-		echo -n "FINALLY, secret_content_directories list ITEM now set to:"
-		echo "$dir_name"
-		#test_directory_accessible "${source_holding_dir_fullpath}/$dir_name"
-
-		# this valid form test works for sanitised directory paths
-		test_file_path_valid_form "${source_holding_dir_fullpath}/$dir_name"
-		if [ $? -eq 0 ]
-		then
-			echo "SECRET CONTENT DIRECTORY PATH IS OF VALID FORM"
-		else
-			echo "The valid form test FAILED and returned: $?"
-			echo "Nothing to do now, but to exit..." && echo
-			exit $E_UNEXPECTED_ARG_VALUE
-		fi	
-
-		# if the above test returns ok, ...
-		test_dir_path_access "${source_holding_dir_fullpath}/$dir_name"
-		if [ $? -eq 0 ]
-		then
-			echo "The full path to the SECRET CONTENT DIRECTORY is: ${source_holding_dir_fullpath}/$dir_name"
-		else
-			echo "The SECRET CONTENT DIRECTORY path access test FAILED and returned: $?"
-			echo "Nothing to do now, but to exit..." && echo
-			exit $E_REQUIRED_FILE_NOT_FOUND
-		fi
-	done
+	exit 0
 
 
 	# WRITE SOURCE MEDIA FILENAMES TO THE STORAGE LOCATION
@@ -453,15 +317,88 @@ function main
 # 
 function import_audit_configuration()
 {
-    # ignore comment lines, space char lines, empty lines ....
-    :
-    # for line in read src_dir_path dst_dir_path file_extension
+    
+	echo
+	echo "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
+	echo "STARTING THE 'IMPORT CONFIGURATION INTO VARIABLES' PHASE in script $(basename $0)"
+	echo "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
+	echo
 
-    #    < "$config_file_fullpath" 
+	# get the values and assign to program variables:
+	#get_destination_holding_dir_fullpath_config # these should be named set...
+	#get_source_holding_dir_fullpath_config
+	get_holding_dirs_fullpath_config
+	get_directories_to_ignore_config
+	get_secret_content_directories_config
+
+	# NOW DO ALL THE DIRECTORY ACCESS TESTS FOR IMPORTED PATH VALUES HERE.
+	# REMEMBER THAT ORDER IS IMPORTANT, AS RELATIVE PATHS DEPEND ON ABSOLUTE.
+
+	for dir in "$destination_holding_dir_fullpath" "$source_holding_dir_fullpath"
+	do
+
+		# this valid form test works for sanitised directory paths
+		test_file_path_valid_form "$dir"
+		return_code=$?
+		if [ $return_code -eq 0 ]
+		then
+			echo "HOLDING (PARENT) DIRECTORY PATH IS OF VALID FORM"
+		else
+			echo "The valid form test FAILED and returned: $return_code"
+			echo "Nothing to do now, but to exit..." && echo
+			exit $E_UNEXPECTED_ARG_VALUE
+		fi	
+
+		# if the above test returns ok, ...
+		test_dir_path_access "$dir"
+		return_code=$?
+		if [ $return_code -eq 0 ]
+		then
+			echo "The full path to the HOLDING (PARENT) DIRECTORY is: $dir"
+		else
+			echo "The HOLDING (PARENT) DIRECTORY path access test FAILED and returned: $return_code"
+			echo "Nothing to do now, but to exit..." && echo
+			exit $E_REQUIRED_FILE_NOT_FOUND
+		fi
+
+	done
+	
+	# note: there's NO POINT testing access HERE to directories we're going to IGNORE!
+
+	for dir_name in "${secret_content_directories[@]}"
+	do
+		echo -n "FINALLY, secret_content_directories list ITEM now set to:"
+		echo "$dir_name"
+
+		# this valid form test works for sanitised directory paths
+		test_file_path_valid_form "${source_holding_dir_fullpath}/$dir_name"
+		return_code=$?
+		if [ $return_code -eq 0 ]
+		then
+			echo "SECRET CONTENT DIRECTORY PATH IS OF VALID FORM"
+		else
+			echo "The valid form test FAILED and returned: $return_code"
+			echo "Nothing to do now, but to exit..." && echo
+			exit $E_UNEXPECTED_ARG_VALUE
+		fi	
+
+		# if the above test returns ok, ...
+		test_dir_path_access "${source_holding_dir_fullpath}/$dir_name"
+		return_code=$?
+		if [ $return_code -eq 0 ]
+		then
+			echo "The full path to the SECRET CONTENT DIRECTORY is: ${source_holding_dir_fullpath}/$dir_name"
+		else
+			echo "The SECRET CONTENT DIRECTORY path access test FAILED and returned: $return_code"
+			echo "Nothing to do now, but to exit..." && echo
+			exit $E_REQUIRED_FILE_NOT_FOUND
+		fi
+	done
+
 
 }
 
-###########################################################
+##########################################################################################################
 # test whether the configuration files' format is valid,
 # and that each line contains something we're expecting
 function check_config_file_content()
@@ -542,6 +479,7 @@ function test_for_ignore_dir
 
 ##########################################################################################################
 ##########################################################################################################
+# keep sanitise functions separate and specialised, as we may add more to specific value types in future
 # FINAL OPERATION ON VALUE, SO GLOBAL test_line SET HERE. RENAME CONCEPTUALLY DIFFERENT test_line NAMESAKES
 function sanitise_absolute_path_value ##
 {
@@ -554,16 +492,19 @@ echo && echo "ENTERED INTO FUNCTION ${FUNCNAME[0]}" && echo
 	test_line="${1}"
 	echo "test line on entering "${FUNCNAME[0]}" is: $test_line" && echo
 
-	# TRIM TRAILING AND LEADING SPACES AND TABS
-	test_line=${test_line%%[[:blank:]]}
-	test_line=${test_line##[[:blank:]]}
+	while [[ "$test_line" == *'/' ]] ||\
+	 [[ "$test_line" == *[[:blank:]] ]] ||\
+	 [[ "$test_line" == [[:blank:]]* ]]
+	do 
+		# TRIM TRAILING AND LEADING SPACES AND TABS
+		# backstop code, as with leading spaces, config file line wouldn't even have been
+		# recognised as a value!
+		test_line=${test_line%%[[:blank:]]}
+		test_line=${test_line##[[:blank:]]}
 
-	# TRIM TRAILING / FOR ABSOLUTE PATHS:
-    while [[ "$test_line" == *'/' ]]
-    do
-        echo "FOUND TRAILING SLASH"
-        test_line=${test_line%'/'}
-    done 
+		# TRIM TRAILING / FOR ABSOLUTE PATHS:
+		test_line=${test_line%'/'}
+	done
 
 	echo "test line after trim cleanups in "${FUNCNAME[0]}" is: $test_line" && echo
 
@@ -571,8 +512,8 @@ echo && echo "LEAVING FROM FUNCTION ${FUNCNAME[0]}" && echo
 
 }
 
-
 ##########################################################################################################
+# keep sanitise functions separate and specialised, as we may add more to specific value types in future
 # FINAL OPERATION ON VALUE, SO GLOBAL test_line SET HERE...
 function sanitise_relative_path_value
 {
@@ -586,18 +527,21 @@ echo && echo "ENTERED INTO FUNCTION ${FUNCNAME[0]}" && echo
 	test_line="${1}"
 	echo "test line on entering "${FUNCNAME[0]}" is: $test_line" && echo
 
-	# TRIM TRAILING AND LEADING SPACES AND TABS
-	test_line=${test_line%%[[:blank:]]}
-	test_line=${test_line##[[:blank:]]}
+	while [[ "$test_line" == *'/' ]] ||\
+	 [[ "$test_line" == [[:blank:]]* ]] ||\
+	 [[ "$test_line" == *[[:blank:]] ]]
+	do 
+		# TRIM TRAILING AND LEADING SPACES AND TABS
+		# backstop code, as with leading spaces, config file line wouldn't even have been
+		# recognised as a value!
+		test_line=${test_line%%[[:blank:]]}
+		test_line=${test_line##[[:blank:]]}
 
-	# TRIM LEADING AND TRAILING / FOR RELATIVE PATHS:
-    while [[ "$test_line" == *'/' ]]
-    do
-        echo "FOUND TRAILING SLASH"
-        test_line=${test_line%'/'}
-    done 
+		# TRIM TRAILING / FOR ABSOLUTE PATHS:
+		test_line=${test_line%'/'}
+	done
 
-	# TRIM LEADING / FOR RELATIVE PATHS:
+	# FINALLY, JUST THE ONCE, TRIM LEADING / FOR RELATIVE PATHS:
 	# afer this, test_line should just be the directory name
 	test_line=${test_line##'/'}
 
@@ -657,120 +601,84 @@ function test_and_set_line_type
 }
 
 ##########################################################################################################
-##########################################################################################################
-## VARIABLE 1:
-# TODO: LATER - COULD THESE TWO FUNCTIONS FOR VARIABLES 1 AND 2 BE CONSOLIDATED INTO ONE FOR ABSOLUTED PATH VALUES?
-# ...WITH A keyword ARRAY FOR LOOPED THOUGH?
-function get_destination_holding_dir_fullpath_config
+# for any absolute file path value to be imported...
+function get_holding_dirs_fullpath_config
 {
 
-echo && echo "ENTERED INTO FUNCTION ${FUNCNAME[0]}" && echo
+	echo && echo "ENTERED INTO FUNCTION ${FUNCNAME[0]}" && echo
 
-	keyword="destination_holding_dir_fullpath="
-	line_type=""
-	value_collection="OFF"
-
-	while read lineIn
+	for keyword in "destination_holding_dir_fullpath=" "source_holding_dir_fullpath="
 	do
 
-		test_and_set_line_type "$lineIn" # interesting for the line FOLLOWING that keyword find
+		#keyword="destination_holding_dir_fullpath="
+		line_type=""
+		value_collection="OFF"
 
-		if [[ $value_collection == "ON" && $line_type == "value_string" ]]
-		then
-			sanitise_absolute_path_value "$lineIn"
-			echo "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
-			echo "test_line has the value: $test_line"
-			echo "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
-			set -- $test_line # using 'set' to get test_line out of this subprocess into a positional parameter ($1)
+		while read lineIn
+		do
 
-		elif [[ $value_collection == "ON" && $line_type != "value_string" ]] # last value has been collected for destination_holding_dir_fullpath
+			test_and_set_line_type "$lineIn" # interesting for the line FOLLOWING that keyword find
+
+			if [[ $value_collection == "ON" && $line_type == "value_string" ]]
+			then
+				sanitise_absolute_path_value "$lineIn"
+				echo "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
+				echo "test_line has the value: $test_line"
+				echo "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
+				set -- $test_line # using 'set' to get test_line out of this subprocess into a positional parameter ($1)
+
+			elif [[ $value_collection == "ON" && $line_type != "value_string" ]]
+			# last value has been collected for this holding directory
+			then
+				value_collection="OFF" # just because..
+				break # end this while loop, as last value has been collected for this holding directory
+			else
+				# value collection must be OFF
+				:
+			fi
+			
+			
+			# switch value collection ON for the NEXT line read
+			# THEREFORE WE'RE ASSUMING THAT A KEYWORD CANNOT EXIST ON THE 1ST LINE OF THE FILE
+			if [[ "$lineIn" == "$keyword" ]]
+			then
+				value_collection="ON"
+			fi
+
+		done < "$config_file_fullpath"
+
+		# ASSIGN
+		echo "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
+		echo "test_line has the value: $1"
+		echo "the keyword on this for-loop is set to: $keyword"
+		echo "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
+
+		if [ "$keyword" == "destination_holding_dir_fullpath=" ]
 		then
-			value_collection="OFF" # just because..
-			break # end this while loop, as last value has been collected for destination_holding_dir_fullpath
+			destination_holding_dir_fullpath="$1"
+			# test_line just set globally in sanitise_absolute_path_value function
+		elif [ "$keyword" == "source_holding_dir_fullpath=" ]
+		then
+			source_holding_dir_fullpath="$1"
+			# test_line just set globally in sanitise_absolute_path_value function
 		else
-			# value collection must be OFF
-			:
-		fi
-		
-		
-		# switch value collection ON for the NEXT line read
-		# THEREFORE WE'RE ASSUMING THAT A KEYWORD CANNOT EXIST ON THE 1ST LINE OF THE FILE
-		if [[ "$lineIn" == "$keyword" ]]
-		then
-			value_collection="ON"
+			echo "Failsafe branch entered"
+			exit $E_UNEXPECTED_BRANCH_ENTERED
 		fi
 
-	done < "$config_file_fullpath"
+		set -- # unset that positional parameter we used to get test_line out of that while read subprocess
+		echo "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
+		echo "test_line (AFTER set --) has the value: $1"
+		echo "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
 
-	# ASSIGN
-	echo "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
-	echo "test_line has the value: $1"
-	echo "destination_holding_dir_fullpath has the value: $destination_holding_dir_fullpath"
-	echo "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
+	done
 
-	destination_holding_dir_fullpath="$1" # test_line just set globally in sanitise_absolute_path_value function
-	set -- # unset that positional parameter we used to get test_line out of that while read subprocess
-	echo "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
-	echo "test_line (AFTER set --) has the value: $1"
-	echo "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
-
-
-echo && echo "LEAVING FROM FUNCTION ${FUNCNAME[0]}" && echo
+	echo && echo "LEAVING FROM FUNCTION ${FUNCNAME[0]}" && echo
 
 }
 
 ##########################################################################################################
-## VARIABLE 2:
-function get_source_holding_dir_fullpath_config
-{
 
-echo && echo "ENTERED INTO FUNCTION ${FUNCNAME[0]}" && echo
-
-	keyword="source_holding_dir_fullpath="
-	## ACCESS TO RELATIVE DIRECTORIES CAN ONLY BE TESTED ONCE source_holding_dir_fullpath
-	# HAS BEEN TESTED OK AND VARIABLE ASSIGNED
-	line_type=""
-	value_collection="OFF"
-
-	while read lineIn
-	do
-
-		test_and_set_line_type "$lineIn" # interesting for the line FOLLOWING that keyword find
-
-		if [[ $value_collection == "ON" && $line_type == "value_string" ]]
-		then
-			sanitise_absolute_path_value "$lineIn"
-			set -- $test_line # 
-
-		elif [[ $value_collection == "ON" && $line_type != "value_string" ]] # last value has been collected for destination_holding_dir_fullpath
-		then
-			value_collection="OFF" # just because..
-			break # end this while loop, as last value has been collected for destination_holding_dir_fullpath
-		else
-			# value collection must be OFF
-			:
-		fi
-		
-		
-		# switch value collection ON for the NEXT line read
-		# THEREFORE WE'RE ASSUMING THAT A KEYWORD CANNOT EXIST ON THE 1ST LINE OF THE FILE
-		if [[ "$lineIn" == "$keyword" ]]
-		then
-			value_collection="ON"
-		fi
-
-	done < "$config_file_fullpath"
-
-
-	# ASSIGN 
-	source_holding_dir_fullpath=$1 # test_line was just set globally in sanitise_absolute_path_value function
-	set -- # unset that positional parameter we used to get test_line out of that while read subprocess
-
-echo && echo "LEAVING FROM FUNCTION ${FUNCNAME[0]}" && echo
-
-}
-
-##########################################################################################################
 ## VARIABLE 3:
 function get_directories_to_ignore_config
 {
