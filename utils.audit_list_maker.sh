@@ -16,7 +16,7 @@ function main
 	if [ $# -ne 1 ]
 	then
 		echo "Incorrect number of command line args. Exiting now..."
-		echo "Usage: $(basename $0) <PROD|DEV>"
+		echo "Usage: $(basename $0) <[PROD|DEV]"
 		exit $E_INCORRECT_NUMBER_OF_ARGS
 	fi
 
@@ -24,7 +24,7 @@ function main
 	if ! [[ "${1}" = 'DEV' || "${1}" = 'PROD' ]] 
 	then
 		echo "Incorrect command line arg.  Exiting now..."
-		echo "Usage: $(basename $0) <PROD|DEV>"
+		echo "Usage: $(basename $0) <[PROD|DEV]"
 		exit $E_UNEXPECTED_ARG_VALUE
 	fi
 
@@ -32,7 +32,7 @@ function main
 
 	echo "OUR CURRENT SHELL LEVEL IS: $SHLVL"
 
-	echo "USAGE: $(basename $0) <PROD|DEV>"  
+	echo "USAGE: $(basename $0) <[PROD|DEV]"  
 
 	# Display a program header and give user option to leave if here in error:
     echo
@@ -117,11 +117,7 @@ function main
 	#######################################################################
 
 	# SET THE SCRIPT ROOT DIRECTORY (IN WHICH THIS SCRIPT CURRENTLY FINDS ITSELF)
-	# 
 	echo "Full path to this script: $0" && echo
-
-	## remove from end of full path: a directory delimiter and the basename
-	## TODO: if SCRIPT 'SOMEHOW' SITS IN THE ROOT DIRECTORY, WE'D JUST REMOVE "$(basename $0)"
 	script_dir_fullpath="${0%'/'"$(basename $0)"}"
 	echo "Script root directory set to: $script_dir_fullpath"
 	export script_dir_fullpath
@@ -137,28 +133,64 @@ function main
 	#
 	check_config_file_content
 
-	# IMPORT CONFIGURATION INTO PROGRAM VARIABLES
 	import_audit_configuration
 
-	exit 0
+	write_src_media_filenames_to_dst_files
 
+	check_encryption_platform
+	if [[ $? -eq 0 && ${#file_fullpaths_to_encrypt[@]} -gt 0 ]]
+	then
+		encrypt_secret_lists
+	fi
+
+	echo && echo "JUST GOT BACK FROM ENCRYPTION SERVICES"
+
+	echo "audit_list_maker exit code: $?" #&& exit 
+
+} ## end main
+
+##########################################################################################################
+
+
+
+
+
+
+
+
+
+
+
+
+###############################################################################################
+#### vvvvv FUNCTION DECLARATIONS  vvvvv
+###############################################################################################
+# 
+
+
+
+
+
+
+##########################################################################################################
+function write_src_media_filenames_to_dst_files
+{
 
 	# WRITE SOURCE MEDIA FILENAMES TO THE STORAGE LOCATION
 	# the designated storage directory must already exist - it won't be created by this script.
 
 	# TODO: if wc -l destination_output_file_fullpath >= 12000; then continue writing to output_file2
-
 	# 
 	#date=$(date +'%T')
 	#date=$(date +'%F')
 	#date=$(date +'%F@%T')
-
-
 	echo
 	echo "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
 	echo "STARTING THE 'WRITE SOURCE MEDIA FILENAMES TO THE STORAGE LOCATION' PHASE in script $(basename $0)"
 	echo "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
 	echo
+
+	read
 
 	# remove previous output files during development
 	# in service we could either create another subdirectory, continue to delete, keep one or two previous copies or....
@@ -199,19 +231,15 @@ function main
 		# NOW THAT WE HAVE A $destination_output_file_fullpath WE CAN FIND OUT WHETHER IT NEEDS ENCRYPING (AND SO \
 		# +ADDED TO THE file_fullpaths_to_encrypt ARRAY), BY TESTING IF THE CORRESPONDING $source_input_dir_fullpath WAS SECRET.
 		# WE'LL CALL A FUNCTION TO LOOP THROUGH THE secret_content_directories ARRAY:
-		
-		# (THE file_fullpaths_to_encrypt ARRAY WILL BE TURNED INTO A SINGLE STRING ARGUMENT string_to_send (WITH SPACE AS IFS)
-		# AND SENT OVER WHEN encryption_services.sh IS CALLED JUST ONCE AT THE END)
-
+	
 		test_for_secret_dir "$source_input_dir_fullpath" 
-		return_code=$?; echo "return_code : $return_code"
+		return_code=$?; echo "test_for_secret_dir return_code : $return_code"
 		if [[ "$return_code" -eq 0 ]]
 		then
 			# NOW APPEND THE ARRAY
 			echo "APPENDING ARRAY  ::::::::::::  WITH $destination_output_file_fullpath   "
 			file_fullpaths_to_encrypt+=( "${destination_output_file_fullpath}" )
 		fi
-
 
 		echo "destination_output_file_fullpath set to : $destination_output_file_fullpath" # debug
 
@@ -220,46 +248,29 @@ function main
 		printf "%s\n" "@@@@@@@audit@@@@@@@@@@@@@@@@@@@ :: $destination_output_file_fullpath :: @@@@@@@@@@@output@@@@@@@@@@@@@@@" >> "$destination_output_file_fullpath"
 		printf "%s\n" "   @@@@@@@  ::  $(date +"	[%Y-%m-%d] [%H:%M:%S]") ::     @@@@@@@    " >> "$destination_output_file_fullpath"
 
-
-		# output file created for appended redirect, any problem tell the hand
-		# TODO: better to use `find`or `du -...`,  and specify a list of file extensions of interest - investigate later
 		echo >> "$destination_output_file_fullpath" # empty lines for format
 		echo >> "$destination_output_file_fullpath"
 
-		ls -R "$source_input_dir_fullpath" >> "$destination_output_file_fullpath"  2>/dev/null # suppress stderr
-
+		ls -R "$source_input_dir_fullpath" >> "$destination_output_file_fullpath" 2>/dev/null # suppress stderr
+		# TODO: better to use `find`or `du -...`, 
+		# and specify a list of file extensions of interest - investigate later
 
 		## TODO: WE JUST WANT THE COUNT HERE, SO REDIRECT OR PIPE TO sed || USE VARIABLE EXPANSION ON A VARIABLE
-		echo "LINE COUNT OUTPUT FOR FILE: `wc -l "$destination_output_file_fullpath"` "
-
-		echo
-		echo "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
-		echo "       JUST ENDED THE WRITE 'FOR' LOOP FOR ONE SOURCE DIRECTORY... NEXT ..."
-		echo "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
-		echo
-
+		echo "LINE COUNT OUTPUT FOR FILE: $(wc -l "$destination_output_file_fullpath") " && echo
 
 	done	
 
-	# NOW, AT THIS POINT, ALL AUDIT LISTINGS HAVE BEEN WRITTEN TO THEIR DESTINATIONS.
-	# WE CAN NOW PROCEED TO ENCRYPTION OF OUR SECRET STUFF...
+}
+##########################################################################################################
+# 
+function encrypt_secret_lists
+{
+		
+	echo && echo "ENTERED INTO FUNCTION ${FUNCNAME[0]}" && echo
 
-	# we test for the existence of a known script that provides encryption services:
-	which encryption_services.sh
-	if [ $? -eq 0 ]
-	then
-		echo "THE encryption_services.sh PROGRAM WAS FOUND TO BE INSTALLED OK ON THIS HOST SYSTEM"	
-	else
-		echo "FAILED TO FIND THE encryption_services.sh PROGRAM ON THIS SYSTEM, SO NO NOTHING LEFT TO DO BUT EXEET, GOODBYE"
-		exit $E_REQUIRED_PROGRAM_NOT_FOUND
-	fi	
-
-	echo "OUR CURRENT SHELL LEVEL IS: $SHLVL"
-
-	read
-
-	# BASH ARRAYS ARE NOT 'FIRST CLASS VALUES' SO CAN'T BE PASSED AROUND LIKE ONE THING - so since we're only intending to make a single call
-	# to encryption_services.sh, we need to make an IFS separated string argument
+	# BASH ARRAYS ARE NOT 'FIRST CLASS VALUES' SO CAN'T BE PASSED AROUND LIKE ONE THING\
+	# - so since we're only intending to make a single call\
+	# to file_encrypter.sh, we need to make an IFS separated string argument
 	for filename in "${file_fullpaths_to_encrypt[@]}"
 	do
 		#echo "888888888888888888888888888888888888888888888888888888888888888888"
@@ -269,50 +280,58 @@ function main
 	# now to trim that last trailing space character:
 	string_to_send=${string_to_send%[[:blank:]]}
 
-	echo "${string_to_send}"
+	echo "${string_to_send}" ## debug
 
 	# WHY ARE WE HERE AGAIN..?
-	# we want to replace EACH destination_output_file_fullpath file that we've written, with an encrypted version...
-	# ... so, we call encryption_services.sh script to handle the file encryption jobs
-	## the command argument is deliberately unquoted, so the default space character IFS DOES separate the string into arguments
-	encryption_services.sh $string_to_send
+	# we want to replace EACH destination_output_file_fullpath file that we've written, with an encrypted version\
+	# ... so, we call file_encrypter.sh script to handle this file encryption job
+	## the command argument is deliberately unquoted, so the default\
+	# space character IFS DOES separate the string into arguments
+	file_encrypter.sh $string_to_send
 
-	##########################################################################################################
-	##########################################################################################################
+	echo && echo "LEAVING FROM FUNCTION ${FUNCNAME[0]}" && echo
 
-	echo && echo "JUST GOT BACK FROM ENCRYPTION SERVICES"
-
-	echo "audit_list_maker exit code: $?" #&& exit 
-
-} ## end main
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-###############################################################################################
-#### vvvvv FUNCTION DECLARATIONS  vvvvv
-###############################################################################################
-# 
-
-
-
-
-
-
-
-
+}
 
 ##########################################################################################################
+# check that the OpenPGP tool gpg is installed on the system
+# check that the file_encrypter.sh program is accessible
+function check_encryption_platform
+{
+		
+	echo && echo "ENTERED INTO FUNCTION ${FUNCNAME[0]}" && echo
+
+	# NOW, AT THIS POINT, ALL AUDIT LISTINGS HAVE BEEN WRITTEN TO THEIR DESTINATIONS.
+	# WE CAN NOW PROCEED TO ENCRYPTION OF OUR SECRET STUFF...
+
+	bash -c "which gpg 2>/dev/null" # suppress stderr (but not stdout for now)
+	if [ $? -eq 0 ]
+	then
+		echo "OpenPGP PROGRAM INSTALLED ON THIS SYSTEM OK"
+	else
+		echo "FAILED TO FIND THE REQUIRED OpenPGP PROGRAM"
+		# -> exit due to failure of any of the above tests:
+		echo "Exiting from function \"${FUNCNAME[0]}\" in script $(basename $0)"
+		exit $E_REQUIRED_PROGRAM_NOT_FOUND
+	fi
+
+	# we test for the existence of a known script that provides encryption services:
+	which file_encrypter.sh
+	if [ $? -eq 0 ]
+	then
+		echo "THE file_encrypter.sh PROGRAM WAS FOUND TO BE INSTALLED OK ON THIS HOST SYSTEM"	
+	else
+		echo "FAILED TO FIND THE file_encrypter.sh PROGRAM ON THIS SYSTEM, SO NO NOTHING LEFT TO DO BUT EXEET, GOODBYE"
+		exit $E_REQUIRED_PROGRAM_NOT_FOUND
+	fi
+
+	echo "OUR CURRENT SHELL LEVEL IS: $SHLVL"
+
+	read
+
+	echo && echo "LEAVING FROM FUNCTION ${FUNCNAME[0]}" && echo
+
+}
 ###########################################################
 # 
 function import_audit_configuration()
@@ -325,8 +344,6 @@ function import_audit_configuration()
 	echo
 
 	# get the values and assign to program variables:
-	#get_destination_holding_dir_fullpath_config # these should be named set...
-	#get_source_holding_dir_fullpath_config
 	get_holding_dirs_fullpath_config
 	get_directories_to_ignore_config
 	get_secret_content_directories_config
@@ -405,7 +422,7 @@ function check_config_file_content()
 {
 	while read lineIn
 	do
-		# any content problems handled in the following function:
+		# any content problems handled in the test_and_set_line_type function:
         test_and_set_line_type "$lineIn"
         return_code="$?"
         echo "exit code for tests on that line was: $return_code"
@@ -569,11 +586,11 @@ function test_and_set_line_type
 	if [[ "$test_line" == "#"* ]] # line is a comment
 	then
 		line_type="comment"
-		echo "line_type set to: $line_type"
+		#echo "line_type set to: $line_type"
 	elif [[ "$test_line" =~ [[:blank:]] || "$test_line" == "" ]] # line empty or contains only spaces or tab characters
 	then
 		line_type="empty"
-		echo "line_type set to: $line_type"
+		#echo "line_type set to: $line_type"
 	elif [[ "$test_line" =~ [[:alnum:]] ]] # line is a string (not commented)
 	then
 		echo -n "Alphanumeric string  :  "
@@ -678,7 +695,7 @@ function get_holding_dirs_fullpath_config
 }
 
 ##########################################################################################################
-
+# CAN THESE TWO ALSO BE CONSOLIDATED?
 ## VARIABLE 3:
 function get_directories_to_ignore_config
 {
@@ -742,6 +759,7 @@ echo && echo "LEAVING FROM FUNCTION ${FUNCNAME[0]}" && echo
 }
 
 ##########################################################################################################
+# CAN THESE TWO ALSO BE CONSOLIDATED?
 ## VARIABLE 4:
 function get_secret_content_directories_config
 {
