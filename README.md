@@ -2,34 +2,28 @@ Welcome
 ===
 
 The purpose of this GitHub repository is to be a source of ideas for anyone interested.
-Feel free to download or fork any of the work contained here. This project is being updated over time.
+Clone, fork as you wish. This project is being updated over time.
 
 Creating audit listings
 ===
 
-**audit_list_maker** creates independently (on a separate device) stored 'reference listings' of the media files on a drive when the backup of those files is not justified.
-
-**Use Case:**
-We have a large collection of media files, stored on an external drive.
-Even if we lost this content due to drive failure, accidental formatting (oops), physical damage etc, the process of reacquiring this content would be trivial, so we're not bothered about backing it up.
-All we'd need in order to go about rebuilding would be an up to date listing of those media files.
+**audit_list_maker** creates text files that list the contents of all directories on a media drive when the backup of that content is not really justified.
 
 Project Background
 ===
-By *audit* I just mean a text file 'nested summary of all the directories and files contained on a device'. This might be most useful when we have hundreds or even thousands of these files. The word *audit* was the most appropriate noun I could think of, but I'll probably change that if I come across something better. Any ideas?
 
-Although it's a pretty trivial task to create such a text file audit - I've been issuing the following command from time to time...
+We have a large collection of important media files, stored on an external drive.
+Even if we lost this content due to drive failure, accidental formatting (oops), physical damage etc, the process of reacquiring this content would be trivial, so we're not bothered about going to the expense of backing it up.
+All we'd need in order to go about rebuilding would be an up to date listing of those media files.
+
+Although it's a pretty trivial task to create such summary listings in text files - I've been issuing the following command from time to time...
 
 `ls -R /media/algo/media_device > ~/audit_dir/media_file_lists`
 
-... I wanted to build a configurable program around such a command. Additional relevant functionality (like encryption of audit data) could then be added later.
+... I wanted to build a program around such a command that could be configured by the user. Additional functionality like specifying which source and destination directories to use, which directories to ignore and which listings of secret files to encrypt could then be offered to the user (me) at runtime.
 
 ---
-
-**Getting creative** by solving problems.
-
-
-That's the purpose of this project.
+:cd: >> :file_folder:
 
 
 
