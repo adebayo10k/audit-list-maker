@@ -12,56 +12,11 @@
 
 function main
 {
-	# TEST COMMAND LINE ARGS
-	if [ $# -ne 1 ]
-	then
-		echo "Incorrect number of command line args. Exiting now..."
-		echo "Usage: $(basename $0) <[PROD|DEV]"
-		exit $E_INCORRECT_NUMBER_OF_ARGS
-	fi
-
-	# if ! [[ "${1}" = 'DEV' -o "${1}" = 'PROD' ]]
-	if ! [[ "${1}" = 'DEV' || "${1}" = 'PROD' ]] 
-	then
-		echo "Incorrect command line arg.  Exiting now..."
-		echo "Usage: $(basename $0) <[PROD|DEV]"
-		exit $E_UNEXPECTED_ARG_VALUE
-	fi
 
 	#######################################################################
 
-	echo "OUR CURRENT SHELL LEVEL IS: $SHLVL"
-
-	echo "USAGE: $(basename $0) <[PROD|DEV]"  
-
-	# Display a program header and give user option to leave if here in error:
-    echo
-    echo -e "		\033[33m===================================================================\033[0m";
-    echo -e "		\033[33m||               Welcome to the AUDIT LIST MAKER                 ||  author: adebayo10k\033[0m";  
-    echo -e "		\033[33m===================================================================\033[0m";
-    echo
-    echo " Type q to quit NOW, or press ENTER to continue."
-    echo && sleep 1
-    read last_chance
-
-    case $last_chance in 
-	[qQ])	echo
-			echo "Goodbye!" && sleep 1
-			exit 0
-				;;
-	*) 		echo "You're IN..." && echo && sleep 1
-		 		;;
-    esac 
-
-	#######################################################################
-
-	# SET PROGRAM RUN MODE:
-	# passed in from command line, this is set to:
-	# DEV during developemnt. We work on controlled, sample configuration and input data
-	# PROD when working on real data using real configuration settings
-	RUN_MODE=$1 
-	export RUN_MODE
-
+	# GLOBAL VARIABLE DECLARATIONS:
+   
 	#######################################################################
 
 	## EXIT CODES:
@@ -85,10 +40,12 @@ function main
 
 	#######################################################################
 
-	# GLOBAL VARIABLE DECLARATIONS:
+	expected_no_of_program_parameters=0
+	actual_no_of_program_parameters=$#
+
 	line_type="" # global...
 	test_line="" # global...
-	config_file_fullpath= # a full path to a file
+	config_file_fullpath="/etc/audit_config" # a full path to a file
 
 	# explicitly declaring variables to make code bit more robust - move to top
 	destination_holding_dir_fullpath="" # single directory in which....# a full path to directory
@@ -122,13 +79,11 @@ function main
 	echo "Script root directory set to: $script_dir_fullpath"
 	export script_dir_fullpath
 
-	echo;echo
-
-	config_file_fullpath="/etc/audit_config"
-
-	echo "Opening your editor now..." && echo && sleep 2
-    sudo nano "$config_file_fullpath" # /etc exists, so no need to test access etc.
-    # no need to validate config file path here, since we've just edited the config file!
+	verify_program_args
+	display_program_header	
+	get_user_permission_to_proceed
+	display_current_config_file
+	get_user_config_edit_decision
 
 	#
 	check_config_file_content
@@ -157,11 +112,6 @@ function main
 
 
 
-
-
-
-
-
 ###############################################################################################
 #### vvvvv FUNCTION DECLARATIONS  vvvvv
 ###############################################################################################
@@ -170,7 +120,78 @@ function main
 
 
 
+##########################################################################################################
+function display_program_header
+{
+	echo "OUR CURRENT SHELL LEVEL IS: $SHLVL"
 
+	# Display a program header and give user option to leave if here in error:
+    echo
+    echo -e "		\033[33m===================================================================\033[0m";
+    echo -e "		\033[33m||             Welcome to the AUDIT LIST FILE MAKER               ||  author: adebayo10k\033[0m";  
+    echo -e "		\033[33m===================================================================\033[0m";
+    echo
+}
+
+##########################################################################################################
+function get_user_permission_to_proceed
+{
+	echo " Type q to quit NOW, or press ENTER to continue."
+    echo && sleep 1
+    read last_chance
+
+    case $last_chance in 
+	[qQ])	echo
+			echo "Goodbye!" && sleep 1
+			exit 0
+				;;
+	*) 		echo "You're IN..." && echo && sleep 1
+		 		;;
+    esac 
+
+}
+##########################################################################################################
+function verify_program_args
+{
+	echo; echo; echo "USAGE: $(basename $0)"
+
+	# TEST COMMAND LINE ARGS
+	if [ $actual_no_of_program_parameters -ne $expected_no_of_program_parameters ]
+	then
+		echo "Incorrect number of command line args. Exiting now..."
+		echo "Usage: $(basename $0)"
+		exit $E_INCORRECT_NUMBER_OF_ARGS
+	fi
+
+}
+##########################################################################################################
+function display_current_config_file
+{
+	echo && echo CURRENT CONFIGURATION FILE...
+	echo && sleep 1
+
+	cat "$config_file_fullpath"
+}
+##########################################################################################################
+function get_user_config_edit_decision
+{
+	echo " Edit configuration file? [Y/N]"
+	echo && sleep 1
+
+	read edit_config
+	case $edit_config in 
+	[yY])	echo && echo "Opening an editor now..." && echo && sleep 2
+    		sudo nano "$config_file_fullpath" # /etc exists, so no need to test access etc.
+    		# also, no need to validate config file path here, since we've just edited the config file!
+				;;
+	[nN])	echo
+			echo " Ok, using the  current configuration" && sleep 1
+				;;			
+	*) 		echo " Give me a Y or N..." && echo && sleep 1
+			get_user_config_edit_decision
+				;;
+	esac 
+}
 
 ##########################################################################################################
 function write_src_media_filenames_to_dst_files
