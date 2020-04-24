@@ -604,6 +604,26 @@ function test_and_set_line_type
 	test_line="${1}"
 	line_type=""
 
+	#[[ "$test_line" == "#"* ]] && line_type="comment"
+	#[[ "$test_line" =~ [[:blank:]] || "$test_line" == "" ]] && line_type="empty"
+	#[[ "$test_line" =~ [[:alnum:]] && "$test_line" == *"=" ]] && line_type="variable_string"
+	#[[ "$test_line" =~ [[:alnum:]] && "$test_line" =~ $all_filepath_regex ]] && line_type="value_string"
+#
+	#case $line_type in
+	#"comment")		echo "line_type set to: $line_type"
+	#				;;
+	#"empty")		echo "line_type set to: $line_type"
+	#				;;
+	#"variable_string")	echo "line_type set to: "$line_type" for "$test_line""
+	#					;;
+	#"value_string")		echo "line_type set to: "$line_type" for "$test_line""
+	#					;;									
+	#*) 				echo "line_type set to: \"UNKNOWN\" for "$test_line""
+	#				echo "Failsafe : Couldn't match this line with ANY line type!"
+	#				return $E_UNEXPECTED_BRANCH_ENTERED
+	#	 			;;
+    #esac
+
 	if [[ "$test_line" == "#"* ]] # line is a comment
 	then
 		line_type="comment"
@@ -633,7 +653,6 @@ function test_and_set_line_type
 		echo "Failsafe : Couldn't match this line with ANY line type!"
 		return $E_UNEXPECTED_BRANCH_ENTERED
 	fi
-
 	#echo && echo "LEAVING FROM FUNCTION ${FUNCNAME[0]}" && echo
 
 }
