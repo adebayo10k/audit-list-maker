@@ -7,7 +7,7 @@ Clone, fork as you wish. This project is being updated over time.
 Creating audit listings
 ===
 
-**audit_list_maker** creates text files that list the contents of all directories on a media drive when the backup of that content is not really justified.
+**audit-list-maker** creates text files that list the contents of all directories on a media drive when the backup of that content is not really justified.
 
 Project Background
 ===

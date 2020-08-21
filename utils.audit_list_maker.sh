@@ -100,7 +100,7 @@ function main
 
 	echo && echo "JUST GOT BACK FROM ENCRYPTION SERVICES"
 
-	echo "audit_list_maker exit code: $?" #&& exit 
+	echo "audit-list-maker exit code: $?" #&& exit 
 
 } ## end main
 
