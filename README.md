@@ -23,7 +23,7 @@ Although it's a pretty trivial task to create such summary listings in text file
 ... I wanted to build a program around such a command that could be configured by the user. Additional functionality like specifying which source and destination directories to use, which directories to ignore and which listings of secret files to encrypt could then be offered to the user (me) at runtime.
 
 ---
-:cd: >> :file_folder:
+:cd: >> :file-folder:
 
 
 
