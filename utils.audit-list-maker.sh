@@ -45,7 +45,7 @@ function main
 
 	line_type="" # global...
 	test_line="" # global...
-	config_file_fullpath="/etc/audit_config" # a full path to a file
+	config_file_fullpath="/etc/audit-config" # a full path to a file
 
 	# explicitly declaring variables to make code bit more robust - move to top
 	destination_holding_dir_fullpath="" # single directory in which....# a full path to directory
