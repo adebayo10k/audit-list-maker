@@ -1,5 +1,5 @@
 # /etc/audit-config
-# This is a WELL FORMED DUMMY configuration file for the audit list maker program.
+# This is a WELL FORMED EXAMPLE configuration file for the audit list maker program.
 # Edit this as necessary for your filesystem
 # The directory paths specified here will determine how the program operates.
 # Comments and empty lines are ignored as usual.
