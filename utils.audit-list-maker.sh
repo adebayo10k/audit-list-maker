@@ -74,10 +74,11 @@ function main
 	#######################################################################
 
 	# SET THE SCRIPT ROOT DIRECTORY (IN WHICH THIS SCRIPT CURRENTLY FINDS ITSELF)
-	echo "Full path to this script: $0" && echo
-	script_dir_fullpath="${0%'/'"$(basename $0)"}"
-	echo "Script root directory set to: $script_dir_fullpath"
-	export script_dir_fullpath
+	echo "Full path of this script:		$0"
+	echo "Script root directory set to:		$(dirname $0)"
+	echo "Script filename set to:			$(basename $0)" && echo
+
+	exit 0  # debug
 
 	verify_program_args
 	display_program_header	
