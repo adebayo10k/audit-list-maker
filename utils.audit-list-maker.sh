@@ -12,13 +12,10 @@
 
 function main
 {
-
-	#######################################################################
-
+	###############################################################################################
 	# GLOBAL VARIABLE DECLARATIONS:
-   
-	#######################################################################
-
+	###############################################################################################
+	
 	## EXIT CODES:
 	E_UNEXPECTED_BRANCH_ENTERED=10
 	E_OUT_OF_BOUNDS_BRANCH_ENTERED=11
@@ -53,9 +50,11 @@ function main
 	declare -a directories_to_ignore=() # set of one or more relative path directories...
 	declare -a secret_content_directories=() # set of one or more relative path directories...
 
-	abs_filepath_regex='^(/{1}[A-Za-z0-9\._-~]+)+$' # absolute file (and sanitised directory) path
-	all_filepath_regex='^(/?[A-Za-z0-9\._-~]+)+$' # both relative and absolute file (and sanitised directory) path . CAREFUL, THIS.
+	#abs_filepath_regex='^(/{1}[A-Za-z0-9\._-~]+)+$' # absolute file (and sanitised directory) path
+	#all_filepath_regex='^(/?[A-Za-z0-9\._-~]+)+$' # both relative and absolute file (and sanitised directory) path . CAREFUL, THIS.
     # MATCHES NEARLY ANY STRING!
+	abs_filepath_regex='^(/{1}[A-Za-z0-9\.\ _~:@-]+)+$' # absolute file path, ASSUMING NOT HIDDEN FILE, placing dash at the end!...
+	all_filepath_regex='^(/?[A-Za-z0-9\.\ _~:@-]+)+$' # both relative and absolute file path
 
 	declare -a file_fullpaths_to_encrypt=() # setdestinationory
 	#test_dir_fullpath ## a full path to directory [[[ LOCAL CONTROL IN 1 FUNC ]]]
@@ -73,23 +72,61 @@ function main
 
 	#######################################################################
 
-	# SET THE SCRIPT ROOT DIRECTORY (IN WHICH THIS SCRIPT CURRENTLY FINDS ITSELF)
-	echo "Full path of this script:		$0"
-	echo "Script root directory set to:		$(dirname $0)"
-	echo "Script filename set to:			$(basename $0)" && echo
+	###############################################################################################
+	# 'SHOW STOPPER' FUNCTION CALLS:	
+	###############################################################################################
 
-	exit 0  # debug
+	# verify and validate program positional parameters
+	verify_and_validate_program_arguments
 
-	verify_program_args
-	display_program_header	
-	get_user_permission_to_proceed
-	display_current_config_file
-	get_user_config_edit_decision
+	#declare -a authorised_host_list=($E530c_hostname $E6520_hostname $E5490_hostname)
 
-	#
-	check_config_file_content
+	# entry test to prevent running this program on an inappropriate host
+	# entry tests apply only to those highly host-specific or filesystem-specific programs that are hard to generalise
+	if [[ $(declare -a | grep "authorised_host_list" 2>/dev/null) ]]; then
+		entry_test
+	else
+		echo "entry test skipped..." && sleep 2 && echo
+	fi
+			
+	
+	###############################################################################################
+	# $SHLVL DEPENDENT FUNCTION CALLS:	
+	###############################################################################################
 
-	import_audit_configuration
+	# using $SHLVL to show whether this script was called from another script, or from command line
+	if [ $SHLVL -le 2 ]
+	then
+		# Display a descriptive and informational program header:
+		display_program_header
+
+		# give user option to leave if here in error:
+		get_user_permission_to_proceed
+	fi
+
+
+	###############################################################################################
+	# FUNCTIONS CALLED ONLY IF THIS PROGRAM USES A CONFIGURATION FILE:	
+	###############################################################################################
+
+	if [ -n "$config_file_fullpath" ]
+	then
+		display_current_config_file
+
+		get_user_config_edit_decision
+
+		# test whether the configuration files' format is valid, and that each line contains something we're expecting
+		validate_config_file_content
+
+		# IMPORT CONFIGURATION INTO PROGRAM VARIABLES
+		import_audit_configuration
+	fi
+
+	#exit 0 #debug
+
+	###############################################################################################
+	# PROGRAM-SPECIFIC FUNCTION CALLS:	
+	###############################################################################################	
 
 	write_src_media_filenames_to_dst_files
 
@@ -111,17 +148,18 @@ function main
 
 
 
-
-
 ###############################################################################################
-#### vvvvv FUNCTION DECLARATIONS  vvvvv
+####  FUNCTION DECLARATIONS  
 ###############################################################################################
-# 
 
+# entry test to prevent running this program on an inappropriate host
+function entry_test()
+{
+	#
+	:
+}
 
-
-
-##########################################################################################################
+####################################################################################################
 function display_program_header
 {
 	echo "OUR CURRENT SHELL LEVEL IS: $SHLVL"
@@ -132,6 +170,11 @@ function display_program_header
     echo -e "		\033[33m||             Welcome to the AUDIT LIST FILE MAKER               ||  author: adebayo10k\033[0m";  
     echo -e "		\033[33m===================================================================\033[0m";
     echo
+
+	# REPORT SOME SCRIPT META-DATA
+	echo "The absolute path to this script is:	$0"
+	echo "Script root directory set to:		$(dirname $0)"
+	echo "Script filename set to:			$(basename $0)" && echo
 }
 
 ##########################################################################################################
@@ -152,11 +195,11 @@ function get_user_permission_to_proceed
 
 }
 ##########################################################################################################
-function verify_program_args
+function verify_and_validate_program_arguments
 {
 	echo; echo; echo "USAGE: $(basename $0)"
 
-	# TEST COMMAND LINE ARGS
+	# TEST # COMMAND LINE ARGS
 	if [ $actual_no_of_program_parameters -ne $expected_no_of_program_parameters ]
 	then
 		echo "Incorrect number of command line args. Exiting now..."
@@ -183,7 +226,7 @@ function get_user_config_edit_decision
 	case $edit_config in 
 	[yY])	echo && echo "Opening an editor now..." && echo && sleep 2
     		sudo nano "$config_file_fullpath" # /etc exists, so no need to test access etc.
-    		# also, no need to validate config file path here, since we've just edited the config file!
+    		# TODO: yes, we now need to revalidate
 				;;
 	[nN])	echo
 			echo " Ok, using the  current configuration" && sleep 1
@@ -349,8 +392,6 @@ function check_encryption_platform
 
 	echo "OUR CURRENT SHELL LEVEL IS: $SHLVL"
 
-	read
-
 	echo && echo "LEAVING FROM FUNCTION ${FUNCNAME[0]}" && echo
 
 }
@@ -358,12 +399,10 @@ function check_encryption_platform
 # 
 function import_audit_configuration()
 {
-    
-	echo
-	echo "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
-	echo "STARTING THE 'IMPORT CONFIGURATION INTO VARIABLES' PHASE in script $(basename $0)"
-	echo "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
-	echo
+
+	echo  "Press ENTER to start importing to variables..." && echo
+
+	read
 
 	# get the values and assign to program variables:
 	get_holding_dirs_fullpath_config
@@ -440,7 +479,7 @@ function import_audit_configuration()
 ##########################################################################################################
 # test whether the configuration files' format is valid,
 # and that each line contains something we're expecting
-function check_config_file_content()
+function validate_config_file_content()
 {
 	while read lineIn
 	do
@@ -450,8 +489,8 @@ function check_config_file_content()
         echo "exit code for tests on that line was: $return_code"
         if [ $return_code -eq 0 ]
         then
-            # if tested line contained expected content
-            # :
+            # tested line must have contained expected content
+            # this function has no need to know which type of line it was
             echo "That line was expected!" && echo
         else
             echo "That line was NOT expected!"
