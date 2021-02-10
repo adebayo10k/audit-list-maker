@@ -249,11 +249,10 @@ function write_src_media_filenames_to_dst_files
 	#date=$(date +'%T')
 	#date=$(date +'%F')
 	#date=$(date +'%F@%T')
-	echo
-	echo "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
-	echo "STARTING THE 'WRITE SOURCE MEDIA FILENAMES TO THE STORAGE LOCATION' PHASE in script $(basename $0)"
-	echo "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
-	echo
+
+	echo "WARNING: Make sure that source content directory is \"dressed appropriately\"." && echo
+
+	echo  "Then press ENTER to start writing the source media filenames to the storage location..." && echo
 
 	read
 
@@ -719,9 +718,7 @@ function get_holding_dirs_fullpath_config
 			if [[ $value_collection == "ON" && $line_type == "value_string" ]]
 			then
 				sanitise_absolute_path_value "$lineIn"
-				echo "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
 				echo "test_line has the value: $test_line"
-				echo "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
 				set -- $test_line # using 'set' to get test_line out of this subprocess into a positional parameter ($1)
 
 			elif [[ $value_collection == "ON" && $line_type != "value_string" ]]
@@ -745,10 +742,8 @@ function get_holding_dirs_fullpath_config
 		done < "$config_file_fullpath"
 
 		# ASSIGN
-		echo "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
 		echo "test_line has the value: $1"
 		echo "the keyword on this for-loop is set to: $keyword"
-		echo "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
 
 		if [ "$keyword" == "destination_holding_dir_fullpath=" ]
 		then
@@ -764,9 +759,7 @@ function get_holding_dirs_fullpath_config
 		fi
 
 		set -- # unset that positional parameter we used to get test_line out of that while read subprocess
-		echo "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
 		echo "test_line (AFTER set --) has the value: $1"
-		echo "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"
 
 	done
 
