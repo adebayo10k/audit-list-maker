@@ -25,6 +25,7 @@ function main
 	E_REQUIRED_PROGRAM_NOT_FOUND=21
 	E_UNKNOWN_RUN_MODE=30
 	E_UNKNOWN_EXECUTION_MODE=31
+	E_FILE_NOT_ACCESSIBLE=40
 
 	export E_UNEXPECTED_BRANCH_ENTERED
 	export E_OUT_OF_BOUNDS_BRANCH_ENTERED
@@ -34,6 +35,7 @@ function main
 	export E_REQUIRED_PROGRAM_NOT_FOUND
 	export E_UNKNOWN_RUN_MODE
 	export E_UNKNOWN_EXECUTION_MODE
+	export E_FILE_NOT_ACCESSIBLE
 
 	#######################################################################
 
@@ -42,7 +44,7 @@ function main
 
 	line_type="" # global...
 	test_line="" # global...
-	config_file_fullpath="/etc/audit-config" # a full path to a file
+	config_file_fullpath="/etc/audit-config-2TB0" # a full path to a file
 
 	# explicitly declaring variables to make code bit more robust - move to top
 	destination_holding_dir_fullpath="" # single directory in which....# a full path to directory
@@ -56,7 +58,7 @@ function main
 	abs_filepath_regex='^(/{1}[A-Za-z0-9\.\ _~:@-]+)+$' # absolute file path, ASSUMING NOT HIDDEN FILE, placing dash at the end!...
 	all_filepath_regex='^(/?[A-Za-z0-9\.\ _~:@-]+)+$' # both relative and absolute file path
 
-	declare -a file_fullpaths_to_encrypt=() # setdestinationory
+	declare -a file_fullpaths_to_encrypt=() # set of destinationory
 	#test_dir_fullpath ## a full path to directory [[[ LOCAL CONTROL IN 1 FUNC ]]]
 	#user_config_file_fullpath # a full path to a file
 	#config_file_name # a filename
@@ -86,7 +88,7 @@ function main
 	if [[ $(declare -a | grep "authorised_host_list" 2>/dev/null) ]]; then
 		entry_test
 	else
-		echo "entry test skipped..." && sleep 2 && echo
+		echo "entry test skipped..." && sleep 1 && echo
 	fi
 			
 	
@@ -94,6 +96,7 @@ function main
 	# $SHLVL DEPENDENT FUNCTION CALLS:	
 	###############################################################################################
 
+	echo "OUR CURRENT SHELL LEVEL IS: $SHLVL"
 	# using $SHLVL to show whether this script was called from another script, or from command line
 	if [ $SHLVL -le 2 ]
 	then
@@ -108,9 +111,11 @@ function main
 	###############################################################################################
 	# FUNCTIONS CALLED ONLY IF THIS PROGRAM USES A CONFIGURATION FILE:	
 	###############################################################################################
-
+	
 	if [ -n "$config_file_fullpath" ]
 	then
+		get_user_config_file_choice
+
 		display_current_config_file
 
 		get_user_config_edit_decision
@@ -123,6 +128,7 @@ function main
 	fi
 
 	#exit 0 #debug
+
 
 	###############################################################################################
 	# PROGRAM-SPECIFIC FUNCTION CALLS:	
@@ -152,6 +158,54 @@ function main
 ####  FUNCTION DECLARATIONS  
 ###############################################################################################
 
+function get_user_config_file_choice
+{
+	echo "This is the DEFAULT configuration file for this program:"
+	echo $config_file_fullpath
+	echo && sleep 1
+
+	echo "These are all the available configuration files for this program (located in /etc):"
+	ls -h /etc/ | grep "audit-config"
+	echo
+
+	echo "Copy-paste your choice OR just press ENTER to use the DEFAULT" && echo
+
+	read config_file_choice
+
+	[ -n "$config_file_choice" ] && config_file_fullpath="/etc/${config_file_choice}"
+
+	echo "Ok, configuration file now set to \"$config_file_fullpath\"" && echo && sleep 2
+
+	sanitise_absolute_path_value "$config_file_fullpath"
+	echo "test_line has the value: $test_line"
+	config_file_fullpath=$test_line
+
+	# this valid form test works for sanitised directory paths
+	test_file_path_valid_form "${config_file_fullpath}"
+	return_code=$?
+	if [ $return_code -eq 0 ]
+	then
+		echo "The configuration filename is of VALID FORM"
+	else
+		echo "The valid form test FAILED and returned: $return_code"
+		echo "Nothing to do now, but to exit..." && echo
+		exit $E_UNEXPECTED_ARG_VALUE
+	fi
+
+	# if the above test returns ok, ...
+	test_file_path_access "$config_file_fullpath"
+	return_code=$?
+	if [ $return_code -eq 0 ]
+	then
+		echo "The configuration file is ACCESSIBLE OK"
+	else
+		echo "The configuration filepath access test FAILED and returned: $return_code"
+		echo "Nothing to do now, but to exit..." && echo
+		exit $E_REQUIRED_FILE_NOT_FOUND
+	fi
+}
+
+##########################################################################################################
 # entry test to prevent running this program on an inappropriate host
 function entry_test()
 {
@@ -250,7 +304,7 @@ function write_src_media_filenames_to_dst_files
 	#date=$(date +'%F')
 	#date=$(date +'%F@%T')
 
-	echo "WARNING: Make sure that source content directory is \"dressed appropriately\"." && echo
+	echo && echo "WARNING: Before continuing, make sure that source content directory contains ONLY expected subdirectories."
 
 	echo  "Then press ENTER to start writing the source media filenames to the storage location..." && echo
 
@@ -260,7 +314,13 @@ function write_src_media_filenames_to_dst_files
 	# in service we could either create another subdirectory, continue to delete, keep one or two previous copies or....
 	# no risk of sync conflicts, as date augmented filenames mean completely different files
 	# 
-	rm "${destination_holding_dir_fullpath}"/*
+	# NOTE: VERY DANGEROUS TO USE * WITHIN THE rm command! eg #rm "${destination_holding_dir_fullpath}"/*
+	if [ -d $destination_holding_dir_fullpath ]
+	then	
+		rm -rfv $destination_holding_dir_fullpath && mkdir $destination_holding_dir_fullpath
+	else
+		mkdir $destination_holding_dir_fullpath
+	fi
 
 	for source_input_dir_fullpath in "${source_holding_dir_fullpath}"/*
 	do
@@ -284,8 +344,13 @@ function write_src_media_filenames_to_dst_files
 		# also, try [[:alphanum:]] or [A-Za-z0-9_-]
 
 
-		# we need the directory name (not the whole path to it) in order to name the output file 
-		source_input_dir_name="${source_input_dir_fullpath##*'/'}"
+		# we need the directory basename (not the whole path to it) in order to name the output file
+		#source_input_dir_name="${source_input_dir_fullpath##*'/'}"
+		#echo "input1: $source_input_dir_name"
+		source_input_dir_name=$(basename "$source_input_dir_fullpath")
+		#echo "input2: $source_input_dir_name"
+
+		#exit 0 #debug
 
 		# use an augmented input directory name to name the output file
 		destination_output_file_name="${source_input_dir_name}.$(date +'%F@%T')" 
@@ -432,17 +497,28 @@ function import_audit_configuration()
 		if [ $return_code -eq 0 ]
 		then
 			echo "The full path to the HOLDING (PARENT) DIRECTORY is: $dir"
+		#elif [ $return_code -eq $E_REQUIRED_FILE_NOT_FOUND ]
+		#then
+		#	echo "The HOLDING (PARENT) DIRECTORY WAS NOT FOUND. test returned: $return_code"
+		#	echo "Creating the directory now..." && echo
+		#	mkdir "$dir"
 		else
-			echo "The HOLDING (PARENT) DIRECTORY path access test FAILED and returned: $return_code"
+			echo "The HOLDING (PARENT) DIRECTORY path NOT FOUND OR NOT ACCESSIBLE. test returned: $return_code"
 			echo "Nothing to do now, but to exit..." && echo
-			exit $E_REQUIRED_FILE_NOT_FOUND
-		fi
+			exit $E_FILE_NOT_ACCESSIBLE
+		fi 
 
 	done
 	
 	# note: there's NO POINT testing access HERE to directories we're going to IGNORE!
+	# actually, that NOT completely true. We must positively confirm the existence and identity of the
+	# so configured directories, so that we know they have been ignored! Eh?
 
-	for dir_name in "${secret_content_directories[@]}"
+	# TODO: when all these paths are held in arrays, we can CONSOLIDATE here too. 
+	# Everything into a single for-loop
+
+
+	for dir_name in "${secret_content_directories[@]}" "${secret_content_directories[@]}"
 	do
 		echo -n "FINALLY, secret_content_directories list ITEM now set to:"
 		echo "$dir_name"
@@ -963,8 +1039,15 @@ function test_dir_path_access
 		# directory file found and accessible
 		echo "directory "$test_dir_fullpath" found and accessed ok" && echo
 		test_result=0
+	elif [ -d "$test_dir_fullpath" ] ## 
+	then
+		# directory file found BUT NOT accessible CAN'T RECOVER FROM THIS
+		echo "directory "$test_dir_fullpath" found, BUT NOT accessed ok" && echo
+		test_result=1
+		echo "Returning from function \"${FUNCNAME[0]}\" with test result code: $E_FILE_NOT_ACCESSIBLE"
+		return $E_FILE_NOT_ACCESSIBLE
 	else
-		# -> return due to failure of any of the above tests:
+		# -> directory not found: THIS CAN BE RESOLVED BY CREATING THE DIRECTORY
 		test_result=1
 		echo "Returning from function \"${FUNCNAME[0]}\" with test result code: $E_REQUIRED_FILE_NOT_FOUND"
 		return $E_REQUIRED_FILE_NOT_FOUND
