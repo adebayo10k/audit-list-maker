@@ -100,7 +100,7 @@ function main
 
 	echo "OUR CURRENT SHELL LEVEL IS: $SHLVL"
 	# using $SHLVL to show whether this script was called from another script, or from command line
-	if [ $SHLVL -le 2 ]
+	if [ $SHLVL -le 3 ]
 	then
 		# Display a descriptive and informational program header:
 		display_program_header
@@ -124,7 +124,7 @@ function main
 		fi
 
 		display_current_config_file
-exit 0 #debug
+#exit 0 #debug
 		get_user_config_edit_decision
 
 		# test whether the configuration files' format is valid, and that each line contains something we're expecting
@@ -266,6 +266,9 @@ function verify_and_validate_program_arguments
 		echo "Usage: $(basename $0) [configuration file suffix]"
 		exit $E_INCORRECT_NUMBER_OF_ARGS
 	fi
+
+	# sanitise_program_args
+	# validate_program_args
 
 }
 ##########################################################################################################
