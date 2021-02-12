@@ -39,12 +39,14 @@ function main
 
 	#######################################################################
 
-	expected_no_of_program_parameters=0
+	program_param_0=${1:-"not_set"}
+
+	max_expected_no_of_program_parameters=1
 	actual_no_of_program_parameters=$#
 
 	line_type="" # global...
 	test_line="" # global...
-	config_file_fullpath="/etc/audit-config-2TB0" # a full path to a file
+	config_file_fullpath="/etc/audit-config-2TB0" # a full path to a file, the default configuration file.
 
 	# explicitly declaring variables to make code bit more robust - move to top
 	destination_holding_dir_fullpath="" # single directory in which....# a full path to directory
@@ -114,10 +116,15 @@ function main
 	
 	if [ -n "$config_file_fullpath" ]
 	then
-		get_user_config_file_choice
+		if [ "$program_param_0" = "not_set" ]
+		then
+			get_user_config_file_choice
+		else
+			config_file_fullpath=${config_file_fullpath%'-'*}-${program_param_0}
+		fi
 
 		display_current_config_file
-
+exit 0 #debug
 		get_user_config_edit_decision
 
 		# test whether the configuration files' format is valid, and that each line contains something we're expecting
@@ -127,7 +134,7 @@ function main
 		import_audit_configuration
 	fi
 
-	#exit 0 #debug
+	
 
 
 	###############################################################################################
@@ -216,7 +223,6 @@ function entry_test()
 ####################################################################################################
 function display_program_header
 {
-	echo "OUR CURRENT SHELL LEVEL IS: $SHLVL"
 
 	# Display a program header and give user option to leave if here in error:
     echo
@@ -234,7 +240,7 @@ function display_program_header
 ##########################################################################################################
 function get_user_permission_to_proceed
 {
-	echo " Type q to quit NOW, or press ENTER to continue."
+	echo " press ENTER to continue, or q to quit program."
     echo && sleep 1
     read last_chance
 
@@ -254,10 +260,10 @@ function verify_and_validate_program_arguments
 	echo; echo; echo "USAGE: $(basename $0)"
 
 	# TEST # COMMAND LINE ARGS
-	if [ $actual_no_of_program_parameters -ne $expected_no_of_program_parameters ]
+	if [ $actual_no_of_program_parameters -gt $max_expected_no_of_program_parameters ]
 	then
 		echo "Incorrect number of command line args. Exiting now..."
-		echo "Usage: $(basename $0)"
+		echo "Usage: $(basename $0) [configuration file suffix]"
 		exit $E_INCORRECT_NUMBER_OF_ARGS
 	fi
 
