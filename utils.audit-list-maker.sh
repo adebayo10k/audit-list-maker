@@ -46,7 +46,7 @@ function main
 
 	line_type="" # global...
 	test_line="" # global...
-	config_file_fullpath="/etc/audit-config-2TB0" # a full path to a file, the default configuration file.
+	config_file_fullpath="${HOME}/.config/audit-config-2TB0" # a full path to a file
 
 	# explicitly declaring variables to make code bit more robust - move to top
 	destination_holding_dir_fullpath="" # single directory in which....# a full path to directory
@@ -172,14 +172,14 @@ function get_user_config_file_choice
 	echo && sleep 1
 
 	echo "These are all the available configuration files for this program (located in /etc):"
-	ls -h /etc/ | grep "audit-config"
+	ls -h "${HOME}/.config" | grep "audit-config"
 	echo
 
 	echo "Copy-paste your choice OR just press ENTER to use the DEFAULT" && echo
 
 	read config_file_choice
 
-	[ -n "$config_file_choice" ] && config_file_fullpath="/etc/${config_file_choice}"
+	[ -n "$config_file_choice" ] && config_file_fullpath="${HOME}/.config/${config_file_choice}"
 
 	echo "Ok, configuration file now set to \"$config_file_fullpath\"" && echo && sleep 2
 
@@ -288,7 +288,7 @@ function get_user_config_edit_decision
 	read edit_config
 	case $edit_config in 
 	[yY])	echo && echo "Opening an editor now..." && echo && sleep 2
-    		sudo nano "$config_file_fullpath" # /etc exists, so no need to test access etc.
+    		nano "$config_file_fullpath" # /etc exists, so no need to test access etc.
     		# TODO: yes, we now need to revalidate
 				;;
 	[nN])	echo
