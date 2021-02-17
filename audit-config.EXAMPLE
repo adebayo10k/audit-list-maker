@@ -1,4 +1,4 @@
-# /etc/audit-config
+# ~/.config/audit-config
 # This is a WELL FORMED EXAMPLE configuration file for the audit list maker program.
 # Edit this as necessary for your filesystem
 # The directory paths specified here will determine how the program operates.
