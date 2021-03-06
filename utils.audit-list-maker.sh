@@ -54,11 +54,8 @@ function main
 	declare -a directories_to_ignore=() # set of one or more relative path directories...
 	declare -a secret_content_directories=() # set of one or more relative path directories...
 
-	#abs_filepath_regex='^(/{1}[A-Za-z0-9\._-~]+)+$' # absolute file (and sanitised directory) path
-	#all_filepath_regex='^(/?[A-Za-z0-9\._-~]+)+$' # both relative and absolute file (and sanitised directory) path . CAREFUL, THIS.
-    # MATCHES NEARLY ANY STRING!
-	abs_filepath_regex='^(/{1}[A-Za-z0-9\.\ _~:@-]+)+$' # absolute file path, ASSUMING NOT HIDDEN FILE, placing dash at the end!...
-	all_filepath_regex='^(/?[A-Za-z0-9\.\ _~:@-]+)+$' # both relative and absolute file path
+	abs_filepath_regex='^(/{1}[A-Za-z0-9._~:@-]+)+$' # absolute file path, ASSUMING NOT HIDDEN FILE, placing dash at the end!...
+	all_filepath_regex='^(/?[A-Za-z0-9._~:@-]+)+$' # both relative and absolute file path
 
 	declare -a file_fullpaths_to_encrypt=() # set of destinationory
 	#test_dir_fullpath ## a full path to directory [[[ LOCAL CONTROL IN 1 FUNC ]]]
@@ -432,7 +429,7 @@ function encrypt_secret_lists
 }
 
 ##########################################################################################################
-# check that the OpenPGP tool gpg is installed on the system
+# check that the OpenPGP standard implementation (gpg) is installed on the system
 # check that the file-encrypter.sh program is accessible
 function check_encryption_platform
 {
