@@ -15,27 +15,18 @@ function main
 	###############################################################################################
 	# GLOBAL VARIABLE DECLARATIONS:
 	###############################################################################################
-	
-	## EXIT CODES:
-	E_UNEXPECTED_BRANCH_ENTERED=10
-	E_OUT_OF_BOUNDS_BRANCH_ENTERED=11
-	E_INCORRECT_NUMBER_OF_ARGS=12
-	E_UNEXPECTED_ARG_VALUE=13
-	E_REQUIRED_FILE_NOT_FOUND=20
-	E_REQUIRED_PROGRAM_NOT_FOUND=21
-	E_UNKNOWN_RUN_MODE=30
-	E_UNKNOWN_EXECUTION_MODE=31
-	E_FILE_NOT_ACCESSIBLE=40
 
-	export E_UNEXPECTED_BRANCH_ENTERED
-	export E_OUT_OF_BOUNDS_BRANCH_ENTERED
-	export E_INCORRECT_NUMBER_OF_ARGS
-	export E_UNEXPECTED_ARG_VALUE
-	export E_REQUIRED_FILE_NOT_FOUND
-	export E_REQUIRED_PROGRAM_NOT_FOUND
-	export E_UNKNOWN_RUN_MODE
-	export E_UNKNOWN_EXECUTION_MODE
-	export E_FILE_NOT_ACCESSIBLE
+	## EXIT CODES:
+	export E_UNEXPECTED_BRANCH_ENTERED=10
+	export E_OUT_OF_BOUNDS_BRANCH_ENTERED=11
+	export E_INCORRECT_NUMBER_OF_ARGS=12
+	export E_UNEXPECTED_ARG_VALUE=13
+	export E_REQUIRED_FILE_NOT_FOUND=20
+	export E_REQUIRED_PROGRAM_NOT_FOUND=21
+	export E_UNKNOWN_RUN_MODE=30
+	export E_UNKNOWN_EXECUTION_MODE=31
+	export E_FILE_NOT_ACCESSIBLE=40
+	export E_UNKNOWN_ERROR=32
 
 	#######################################################################
 
@@ -165,10 +156,25 @@ function main
 ####  FUNCTION DECLARATIONS  
 ###############################################################################################
 
+# exit program with non-zero exit code
+function exit_with_error()
+{	
+	error_code="$1"
+	error_message="$2"
+
+	echo "EXIT CODE: $error_code" | tee -a $LOG_FILE
+	echo "$error_message" | tee -a $LOG_FILE && echo && sleep 1
+	echo "USAGE: $(basename $0) [configuration file suffix]" | tee -a $LOG_FILE && echo && sleep 1
+
+	exit $error_code
+}
+
+###############################################################################################
+
 # check whether dependencies are already installed ok on this system
 function check_program_requirements() 
 {
-	declare -a program_dependencies=(jq curl cowsay vi file-encrypter.sh gpg)
+	declare -a program_dependencies=(jq cowsay vi file-encrypter.sh gpg)
 
 	for program_name in ${program_dependencies[@]}
 	do
@@ -216,7 +222,8 @@ function get_user_config_file_choice
 	else
 		echo "The valid form test FAILED and returned: $return_code"
 		echo "Nothing to do now, but to exit..." && echo
-		exit $E_UNEXPECTED_ARG_VALUE
+		msg="The valid form test FAILED. Exiting now..."
+		exit_with_error "$E_UNEXPECTED_ARG_VALUE" "$msg"
 	fi
 
 	# if the above test returns ok, ...
@@ -228,7 +235,8 @@ function get_user_config_file_choice
 	else
 		echo "The configuration filepath access test FAILED and returned: $return_code"
 		echo "Nothing to do now, but to exit..." && echo
-		exit $E_REQUIRED_FILE_NOT_FOUND
+		msg="The configuration filepath access test FAILED. Exiting now..."
+		exit_with_error "$E_REQUIRED_FILE_NOT_FOUND" "$msg"
 	fi
 }
 
@@ -266,8 +274,8 @@ function get_user_permission_to_proceed
 
     case $last_chance in 
 	[qQ])	echo
-			echo "Goodbye!" && sleep 1
-			exit 0
+				msg="Goodbye! Exiting now..."
+				exit_with_error 0 "$msg"
 				;;
 	*) 		echo "You're IN..." && echo && sleep 1
 		 		;;
@@ -282,9 +290,8 @@ function verify_and_validate_program_arguments
 	# TEST # COMMAND LINE ARGS
 	if [ $actual_no_of_program_parameters -gt $max_expected_no_of_program_parameters ]
 	then
-		echo "Incorrect number of command line args. Exiting now..."
-		echo "Usage: $(basename $0) [configuration file suffix]"
-		exit $E_INCORRECT_NUMBER_OF_ARGS
+		msg="Incorrect number of command line args. Exiting now..."
+		exit_with_error "$E_INCORRECT_NUMBER_OF_ARGS" "$msg"
 	fi
 
 	# sanitise_program_args
@@ -467,10 +474,9 @@ function check_encryption_platform
 	then
 		echo "OpenPGP PROGRAM INSTALLED ON THIS SYSTEM OK"
 	else
-		echo "FAILED TO FIND THE REQUIRED OpenPGP PROGRAM"
 		# -> exit due to failure of any of the above tests:
-		echo "Exiting from function \"${FUNCNAME[0]}\" in script $(basename $0)"
-		exit $E_REQUIRED_PROGRAM_NOT_FOUND
+		msg="FAILED TO FIND THE REQUIRED OpenPGP PROGRAM. Exiting now..."
+		exit_with_error "$E_REQUIRED_PROGRAM_NOT_FOUND" "$msg"
 	fi
 
 	# we test for the existence of a known script that provides encryption services:
@@ -479,8 +485,8 @@ function check_encryption_platform
 	then
 		echo "THE file-encrypter.sh PROGRAM WAS FOUND TO BE INSTALLED OK ON THIS HOST SYSTEM"	
 	else
-		echo "FAILED TO FIND THE file-encrypter.sh PROGRAM ON THIS SYSTEM, SO NO NOTHING LEFT TO DO BUT EXEET, GOODBYE"
-		exit $E_REQUIRED_PROGRAM_NOT_FOUND
+		msg="FAILED TO FIND THE file-encrypter.sh PROGRAM ON THIS SYSTEM. Exiting now..."
+		exit_with_error "$E_REQUIRED_PROGRAM_NOT_FOUND" "$msg"
 	fi
 
 	echo "OUR CURRENT SHELL LEVEL IS: $SHLVL"
@@ -515,9 +521,9 @@ function import_audit_configuration()
 		then
 			echo "HOLDING (PARENT) DIRECTORY PATH IS OF VALID FORM"
 		else
-			echo "The valid form test FAILED and returned: $return_code"
-			echo "Nothing to do now, but to exit..." && echo
-			exit $E_UNEXPECTED_ARG_VALUE
+			echo "returned: $return_code"
+			msg="The valid form test FAILED. Exiting now..."
+			exit_with_error "$E_UNEXPECTED_ARG_VALUE" "$msg"
 		fi	
 
 		# if the above test returns ok, ...
@@ -532,9 +538,9 @@ function import_audit_configuration()
 		#	echo "Creating the directory now..." && echo
 		#	mkdir "$dir"
 		else
-			echo "The HOLDING (PARENT) DIRECTORY path NOT FOUND OR NOT ACCESSIBLE. test returned: $return_code"
-			echo "Nothing to do now, but to exit..." && echo
-			exit $E_FILE_NOT_ACCESSIBLE
+			echo "test returned: $return_code"
+			msg="The HOLDING (PARENT) DIRECTORY path NOT FOUND OR NOT ACCESSIBLE. Exiting now..."
+			exit_with_error "$E_FILE_NOT_ACCESSIBLE" "$msg"
 		fi 
 
 	done
@@ -560,8 +566,8 @@ function import_audit_configuration()
 			echo "SECRET CONTENT DIRECTORY PATH IS OF VALID FORM"
 		else
 			echo "The valid form test FAILED and returned: $return_code"
-			echo "Nothing to do now, but to exit..." && echo
-			exit $E_UNEXPECTED_ARG_VALUE
+			msg="The valid form test FAILED. Exiting now..."
+			exit_with_error "$E_UNEXPECTED_ARG_VALUE" "$msg"
 		fi	
 
 		# if the above test returns ok, ...
@@ -571,9 +577,9 @@ function import_audit_configuration()
 		then
 			echo "The full path to the SECRET CONTENT DIRECTORY is: ${source_holding_dir_fullpath}/$dir_name"
 		else
-			echo "The SECRET CONTENT DIRECTORY path access test FAILED and returned: $return_code"
-			echo "Nothing to do now, but to exit..." && echo
-			exit $E_REQUIRED_FILE_NOT_FOUND
+			echo "test FAILED and returned: $return_code"
+			msg="The SECRET CONTENT DIRECTORY path access test FAILED. Exiting now..."
+			exit_with_error "$E_FILE_NOT_ACCESSIBLE" "$msg"
 		fi
 	done
 
@@ -597,9 +603,8 @@ function validate_config_file_content()
             # this function has no need to know which type of line it was
             echo "That line was expected!" && echo
         else
-            echo "That line was NOT expected!"
-            echo "Exiting from function \"${FUNCNAME[0]}\" in script \"$(basename $0)\""
-            exit 0
+						msg="That line was NOT expected!. Exiting now..."
+						exit_with_error "$E_UNEXPECTED_ARG_VALUE" "$msg"
         fi
 
 	done < "$config_file_fullpath" 
@@ -859,8 +864,8 @@ function get_holding_dirs_fullpath_config
 			source_holding_dir_fullpath="$1"
 			# test_line just set globally in sanitise_absolute_path_value function
 		else
-			echo "Failsafe branch entered"
-			exit $E_UNEXPECTED_BRANCH_ENTERED
+			msg="Failsafe branch entered. Exiting now..."
+			exit_with_error "$E_UNEXPECTED_ARG_VALUE" "$msg"
 		fi
 
 		set -- # unset that positional parameter we used to get test_line out of that while read subprocess
