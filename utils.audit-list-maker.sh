@@ -134,8 +134,7 @@ function main
 
 	write_src_media_filenames_to_dst_files
 
-	check_encryption_platform
-	if [[ $? -eq 0 && ${#file_fullpaths_to_encrypt[@]} -gt 0 ]]
+	if [ ${#file_fullpaths_to_encrypt[@]} -gt 0 ]
 	then
 		encrypt_secret_lists
 	fi
@@ -459,43 +458,6 @@ function encrypt_secret_lists
 }
 
 ##########################################################################################################
-# check that the OpenPGP standard implementation (gpg) is installed on the system
-# check that the file-encrypter.sh program is accessible
-function check_encryption_platform
-{
-		
-	echo && echo "ENTERED INTO FUNCTION ${FUNCNAME[0]}" && echo
-
-	# NOW, AT THIS POINT, ALL AUDIT LISTINGS HAVE BEEN WRITTEN TO THEIR DESTINATIONS.
-	# WE CAN NOW PROCEED TO ENCRYPTION OF OUR SECRET STUFF...
-
-	bash -c "which gpg 2>/dev/null" # suppress stderr (but not stdout for now)
-	if [ $? -eq 0 ]
-	then
-		echo "OpenPGP PROGRAM INSTALLED ON THIS SYSTEM OK"
-	else
-		# -> exit due to failure of any of the above tests:
-		msg="FAILED TO FIND THE REQUIRED OpenPGP PROGRAM. Exiting now..."
-		exit_with_error "$E_REQUIRED_PROGRAM_NOT_FOUND" "$msg"
-	fi
-
-	# we test for the existence of a known script that provides encryption services:
-	which file-encrypter.sh
-	if [ $? -eq 0 ]
-	then
-		echo "THE file-encrypter.sh PROGRAM WAS FOUND TO BE INSTALLED OK ON THIS HOST SYSTEM"	
-	else
-		msg="FAILED TO FIND THE file-encrypter.sh PROGRAM ON THIS SYSTEM. Exiting now..."
-		exit_with_error "$E_REQUIRED_PROGRAM_NOT_FOUND" "$msg"
-	fi
-
-	echo "OUR CURRENT SHELL LEVEL IS: $SHLVL"
-
-	echo && echo "LEAVING FROM FUNCTION ${FUNCNAME[0]}" && echo
-
-}
-###########################################################
-# 
 function import_audit_configuration()
 {
 
