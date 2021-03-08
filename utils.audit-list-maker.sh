@@ -163,7 +163,7 @@ function exit_with_error()
 
 	echo "EXIT CODE: $error_code" | tee -a $LOG_FILE
 	echo "$error_message" | tee -a $LOG_FILE && echo && sleep 1
-	echo "USAGE: $(basename $0) [configuration file suffix]" | tee -a $LOG_FILE && echo && sleep 1
+	echo "USAGE: $(basename $0) [2TB0|2TB1]" | tee -a $LOG_FILE && echo && sleep 1
 
 	exit $error_code
 }
@@ -289,7 +289,7 @@ function get_user_permission_to_proceed
 ##########################################################################################################
 function verify_and_validate_program_arguments
 {
-	echo; echo; echo "USAGE: $(basename $0)"
+	echo; echo; echo "USAGE: $(basename $0) [2TB0|2TB1]"
 
 	# TEST # COMMAND LINE ARGS
 	if [ $actual_no_of_program_parameters -gt $max_expected_no_of_program_parameters ]
