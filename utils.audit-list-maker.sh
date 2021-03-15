@@ -78,7 +78,7 @@ function main
 
 	# entry test to prevent running this program on an inappropriate host
 	# entry tests apply only to those highly host-specific or filesystem-specific programs that are hard to generalise
-	if [[ $(declare -a | grep "authorised_host_list" 2>/dev/null) ]]; then
+	if [[ $(declare -a | grep 'authorised_host_list' 2>/dev/null) ]]; then
 		entry_test
 	else
 		echo "entry test skipped..." && sleep 1 && echo
@@ -197,7 +197,7 @@ function get_user_config_file_choice
 	echo && sleep 1
 
 	echo "These are all the available configuration files for this program (located in /etc):"
-	ls -h "${HOME}/.config" | grep "audit-config"
+	ls -h "${HOME}/.config" | grep 'audit-config'
 	echo
 
 	echo "Copy-paste your choice OR just press ENTER to use the DEFAULT" && echo
