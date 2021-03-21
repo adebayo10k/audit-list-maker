@@ -32,12 +32,14 @@ function main
 
 	program_param_0=${1:-"not_set"}
 
-	max_expected_no_of_program_parameters=1
+	max_expected_no_of_program_parameters=3
+	min_expected_no_of_program_parameters=2
 	actual_no_of_program_parameters=$#
+	all_the_parameters_string="$@"
 
 	line_type="" # global...
 	test_line="" # global...
-	config_file_fullpath="${HOME}/.config/audit-config-2TB0" # a full path to a file
+	config_file_fullpath= # a full path to a file
 
 	# explicitly declaring variables to make code bit more robust - move to top
 	destination_holding_dir_fullpath="" # single directory in which....# a full path to directory
@@ -46,7 +48,8 @@ function main
 	declare -a secret_content_directories=() # set of one or more relative path directories...
 
 	abs_filepath_regex='^(/{1}[A-Za-z0-9._~:@-]+)+$' # absolute file path, ASSUMING NOT HIDDEN FILE, placing dash at the end!...
-	all_filepath_regex='^(/?[A-Za-z0-9._~:@-]+)+$' # both relative and absolute file path
+	#all_filepath_regex='^(/?[A-Za-z0-9._~:@-]+)+$' # both relative and absolute file path
+	subdir_basename_regex='^[A-Za-z0-9._~:@-]+$' # subdirectory basename
 
 	declare -a file_fullpaths_to_encrypt=() # set of destinationory
 	#test_dir_fullpath ## a full path to directory [[[ LOCAL CONTROL IN 1 FUNC ]]]
@@ -68,11 +71,18 @@ function main
 	# 'SHOW STOPPER' FUNCTION CALLS:	
 	###############################################################################################
 
+	# count program positional parameters
+	check_no_of_program_args
+
 	# check program dependencies and requirements
 	check_program_requirements
 
+	# cleanup and validate, test program positional parameters
+	# required parameter sequence is : CONFIGURATION_FILE, [MEDIA_DRIVE_ID]...
+	cleanup_and_validate_program_arguments
+
 	# verify and validate program positional parameters
-	verify_and_validate_program_arguments
+	#verify_and_validate_program_arguments
 
 	#declare -a authorised_host_list=($E530c_hostname $E6520_hostname $E5490_hostname)
 
@@ -104,6 +114,7 @@ function main
 	###############################################################################################
 	# FUNCTIONS CALLED ONLY IF THIS PROGRAM USES A CONFIGURATION FILE:	
 	###############################################################################################
+	
 	
 	if [ -n "$config_file_fullpath" ]
 	then
@@ -163,13 +174,30 @@ function exit_with_error()
 
 	echo "EXIT CODE: $error_code" | tee -a $LOG_FILE
 	echo "$error_message" | tee -a $LOG_FILE && echo && sleep 1
-	echo "USAGE: $(basename $0) [2TB0|2TB1]" | tee -a $LOG_FILE && echo && sleep 1
+	echo "USAGE: $(basename $0) CONFIGURATION_FILE [MEDIA_DRIVE_ID]..." | tee -a $LOG_FILE && echo && sleep 1
 
 	exit $error_code
 }
 
 ###############################################################################################
+# quick check that number of program arguments is within the valid range
+function check_no_of_program_args()
+{
+	#echo && echo "Entered into function ${FUNCNAME[0]}" && echo
+	
+	# establish that number of parameters is valid
+	if [ $actual_no_of_program_parameters -lt $min_expected_no_of_program_parameters -o \
+	$actual_no_of_program_parameters -gt $max_expected_no_of_program_parameters  ]
+	then
+		msg="Incorrect number of command line arguments. Exiting now..."
+		exit_with_error "$E_INCORRECT_NUMBER_OF_ARGS" "$msg"
+	fi
+	
+	#echo && echo "Leaving from function ${FUNCNAME[0]}" && echo
 
+}
+
+###############################################################################################
 # check whether dependencies are already installed ok on this system
 function check_program_requirements() 
 {
@@ -287,9 +315,107 @@ function get_user_permission_to_proceed
 
 }
 ##########################################################################################################
+# 
+function cleanup_and_validate_program_arguments()
+{	
+
+	echo "$all_the_parameters_string"
+
+	incoming_array=( $all_the_parameters_string )
+	echo "incoming_array[@]: ${incoming_array[@]}"
+
+	# test that element 0 is a valid file
+		# if so, set the configfile variable
+		# test that remaining elements are valid drive ids, by checking config file
+	
+	sanitise_absolute_path_value "${incoming_array[0]}"
+	echo "test_line has the value: $test_line"
+	absolute_path_trimmed=$test_line
+	validate_absolute_path_value "$absolute_path_trimmed"	# exits if any problem with path
+
+	config_file_fullpath="$absolute_path_trimmed" # we're trusting that it's a well formatted json, for now!
+	echo "config filepath: $config_file_fullpath"
+
+	# test that ALL remaining elements are valid drive ids, by checking config file
+	# get the drive ids from the configuration file, as a string
+	drive_id_data_string=$(cat "$config_file_fullpath" | jq -r '.media_drive_audits[] | .source_drive_label') 
+
+	echo "drive_id_data_string: $drive_id_data_string"
+	echo && echo
+
+
+	for elem_num in $(seq 1 $(( ${#incoming_array[@]}-1 )))
+	do
+		arg_match=1 # initialise to failure
+		echo -n "$elem_num."
+		echo ${incoming_array[elem_num]}
+
+			# hey, we can iterate over a string with newline/return character IFS!
+			for drive_id in $drive_id_data_string
+			do
+				echo "my new $drive_id"
+				echo "${incoming_array[elem_num]}" | grep -q "^$drive_id$" # grep for an exact match
+				arg_match=$?
+				echo $arg_match
+				if [ $arg_match -eq 0 ] # program arg is valid match
+				then
+					continue 2 # up 2 levels
+				fi
+			done
+
+		# basically dropping out of this outer loop here, with arg_match=1 means bad argument, so exit
+		if [ $arg_match -ne 0 ] # the current program arg is NOT a valid match
+		then
+			msg="The valid program args test FAILED. Exiting now..."
+			exit_with_error "$E_UNEXPECTED_ARG_VALUE" "$msg"
+		fi
+	done
+
+
+	exit 0 # debug
+
+}
+
+###############################################################################################
+# exits if any problem with path
+function validate_absolute_path_value()
+{
+	#echo && echo "Entered into function ${FUNCNAME[0]}" && echo
+
+	test_filepath="$1"
+
+	# this valid form test works for sanitised file paths
+	test_file_path_valid_form "$test_filepath"
+	return_code=$?
+	if [ $return_code -eq 0 ]
+	then
+		echo "The absolute filepath is of VALID FORM"
+	else
+		msg="The valid form test FAILED and returned: $return_code. Exiting now..."
+		exit_with_error "$E_UNEXPECTED_ARG_VALUE" "$msg"
+	fi
+
+	# if the above test returns ok, ...
+	test_file_path_access "$test_filepath"
+	return_code=$?
+	if [ $return_code -eq 0 ]
+	then
+		echo "The  absolute filepath is ACCESSIBLE OK"
+	else
+		msg="The configuration filepath ACCESS TEST FAILED and returned: $return_code. Exiting now..."
+		exit_with_error "$E_FILE_NOT_ACCESSIBLE" "$msg"
+	fi
+
+
+	#echo && echo "Leaving from function ${FUNCNAME[0]}" && echo
+
+}
+
+
+##########################################################################################################
 function verify_and_validate_program_arguments
 {
-	echo; echo; echo "USAGE: $(basename $0) [2TB0|2TB1]"
+	echo; echo; echo "USAGE: $(basename $0) CONFIGURATION_FILE [MEDIA_DRIVE_ID]..."
 
 	# TEST # COMMAND LINE ARGS
 	if [ $actual_no_of_program_parameters -gt $max_expected_no_of_program_parameters ]
@@ -471,9 +597,16 @@ function import_audit_configuration()
 	read
 
 	# get the values and assign to program variables:
-	get_holding_dirs_fullpath_config
-	get_directories_to_ignore_config
-	get_secret_content_directories_config
+	#get_holding_dirs_fullpath_config
+	#get_directories_to_ignore_config
+	#get_secret_content_directories_config
+
+
+
+
+
+
+	exit 0 # debug
 
 	# NOW DO ALL THE DIRECTORY ACCESS TESTS FOR IMPORTED PATH VALUES HERE.
 	# REMEMBER THAT ORDER IS IMPORTANT, AS RELATIVE PATHS DEPEND ON ABSOLUTE.
@@ -847,7 +980,7 @@ function get_holding_dirs_fullpath_config
 ##########################################################################################################
 # CAN THESE TWO ALSO BE CONSOLIDATED?
 ## VARIABLE 3:
-function get_directories_to_ignore_config
+function get_directories_to_ignore_config()
 {
 
 echo && echo "ENTERED INTO FUNCTION ${FUNCNAME[0]}" && echo
@@ -943,7 +1076,6 @@ echo && echo "ENTERED INTO FUNCTION ${FUNCNAME[0]}" && echo
 			# value collection must be OFF
 			:
 		fi
-		
 		
 		# switch value collection ON for the NEXT line read
 		# THEREFORE WE'RE ASSUMING THAT A KEYWORD CANNOT EXIST ON THE 1ST LINE OF THE FILE
