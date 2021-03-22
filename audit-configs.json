@@ -1,0 +1,29 @@
+{
+  "media_drive_audits": [
+    {
+      "source_drive_label": "DRIVE_000",
+      "source_directory": "/media/user/8TB_EXT_DRIVE_0",
+      "sub_dirs_to_ignore": [
+        "encrypted_dir",
+        "temporary_dir"
+      ],
+      "sub_dirs_to_keep_secret": [
+        "keyfile_knowlege"
+      ],
+      "destination_directory": "/home/user/path/to/dst/media-audit-DRIVE_000"
+    },
+    {
+      "source_drive_label": "DRIVE_000",
+      "source_directory": "/media/user/8TB_EXT_DRIVE_1",
+      "sub_dirs_to_ignore": [
+        "ignore0",
+        "ignore1"
+      ],
+      "sub_dirs_to_keep_secret": [
+        "enemy_list",
+        "prawn_salads"
+      ],
+      "destination_directory": "/home/user/path/to/dst/media-audit-DRIVE_001"
+    }
+  ]
+}
