@@ -37,19 +37,18 @@ function main
 	actual_no_of_program_parameters=$#
 	all_the_parameters_string="$@"
 
-	line_type="" # global...
 	test_line="" # global...
 	config_file_fullpath= # a full path to a file
 
 	# explicitly declaring variables to make code bit more robust - move to top so easier to manage
 
-	# THESE ARE ASSIGNED TO THE 'RAW' CONFIGURATION FILE DATA
+	# THESE ARE ASSIGNED TO THE RAW, IMPORTED CONFIGURATION FILE DATA
 	destination_directory="" # single directory in which....# a full path to directory
 	source_directory="" # single directory from which....# a full path to directory
 	declare -a sub_dirs_to_ignore_array=() # set of one or more relative path directories...
 	declare -a sub_dirs_to_keep_secret_array=() # set of one or more relative path directories...
 
-	# THESE ARE ASSIGNED TO VALUES THAT HAVE BEEN CONVERTED INTO MORE USEFUL FORMS
+	# THESE ARE ASSIGNED TO CONFIGURATION VALUES THAT HAVE BEEN CONVERTED INTO MORE USEFUL DATA TYPES
 	destination_holding_dir_fullpath="" # single directory in which....# a full path to directory
 	source_holding_dir_fullpath="" # single directory from which....# a full path to directory
 	declare -a directories_to_ignore=() # set of one or more relative path directories...
@@ -130,8 +129,8 @@ function main
 		# incoming array is visible here too! ok cool.
 		for elem_num in $(seq 1 $(( ${#incoming_array[@]}-1 ))) #
 		do
-			echo -n "$elem_num."
-			echo ${incoming_array[elem_num]}
+			#echo -n "$elem_num."
+			#echo ${incoming_array[elem_num]}
 			# IMPORT CONFIGURATION DATA INTO PROGRAM VARIABLES
 			import_audit_configuration "${incoming_array[elem_num]}"
 			#
@@ -202,11 +201,15 @@ function check_program_requirements()
 {
 	declare -a program_dependencies=(jq cowsay vi file-encrypter.sh gpg)
 
+	echo
+	echo "PROGRAM REQUIREMENTS CHECK"
+	echo "==========================" && echo
+
 	for program_name in ${program_dependencies[@]}
 	do
 	  if type $program_name >/dev/null 2>&1
 		then
-			echo "$program_name already installed OK" | tee -a $LOG_FILE
+			echo "An existing version of $program_name has been FOUND OK" | tee -a $LOG_FILE
 		else
 			echo "${program_name} is NOT installed." | tee -a $LOG_FILE
 			echo "program dependencies are: ${program_dependencies[@]}" | tee -a $LOG_FILE
@@ -214,6 +217,8 @@ function check_program_requirements()
 			exit_with_error "$E_REQUIRED_PROGRAM_NOT_FOUND" "$msg"
 		fi
 	done
+
+	echo
 }
 
 ###############################################################################################
@@ -242,7 +247,7 @@ function display_program_header
 
 	if type cowsay > /dev/null 2>&1
 	then
-		cowsay "YES, ${USER}!"
+		cowsay "Hello, ${USER}!"
 	fi
 }
 
@@ -258,7 +263,7 @@ function get_user_permission_to_proceed
 				echo "Goodbye! Exiting now..."
 				exit 0 #
 				;;
-	*) 		echo "You're IN..." && echo && sleep 1
+	*) 		echo "You're IN...Welcome!" && echo && sleep 1
 		 		;;
     esac 
 
@@ -268,49 +273,51 @@ function get_user_permission_to_proceed
 function cleanup_and_validate_program_arguments()
 {	
 
-	echo "$all_the_parameters_string"
+	echo "$all_the_parameters_string" && echo
 
 	incoming_array=( $all_the_parameters_string )
-	echo "incoming_array[@]: ${incoming_array[@]}"
+	#echo "incoming_array[@]: ${incoming_array[@]}"
 
 	# test that element 0 is a valid file
 		# if so, set the configfile variable
 		# test that remaining elements are valid drive ids, by checking config file
 	
 	sanitise_absolute_path_value "${incoming_array[0]}"
-	echo "test_line has the value: $test_line"
+	#echo "test_line has the value: $test_line"
 	absolute_path_trimmed=$test_line
 	validate_absolute_path_value "$absolute_path_trimmed"	# exits if any problem with path
 
 	config_file_fullpath="$absolute_path_trimmed" # we're trusting that it's a well formatted json, for now!
 	echo "config filepath: $config_file_fullpath"
 
-	# test that ALL remaining elements are valid drive ids, by checking config file
-	# get the drive ids from the configuration file, as a string
+	# test that ALL remaining elements (program args) are valid drive ids, by checking config file
+	# (that we've just validated) get the drive ids from the configuration file, as a string
 	drive_id_data_string=$(cat "$config_file_fullpath" | jq -r '.media_drive_audits[] | .source_drive_label') 
 
-	echo "drive_id_data_string: $drive_id_data_string"
-	echo && echo
+	#echo "drive_id_data_string: $drive_id_data_string"
+	#echo && echo
 
 
+	# iterate over program arguments array, starting at element 1
 	for elem_num in $(seq 1 $(( ${#incoming_array[@]}-1 )))
 	do
 		arg_match=1 # initialise to failure
-		echo -n "$elem_num."
-		echo ${incoming_array[elem_num]}
+		#echo -n "$elem_num."
+		#echo ${incoming_array[elem_num]}
 
-			# hey, we can iterate over a string with newline/return character IFS!
-			for drive_id in $drive_id_data_string
-			do
-				echo "my new $drive_id"
-				echo "${incoming_array[elem_num]}" | grep -q "^$drive_id$" # grep for an exact match
-				arg_match=$?
-				echo $arg_match
-				if [ $arg_match -eq 0 ] # program arg is valid match
-				then
-					continue 2 # up 2 levels
-				fi
-			done
+		# hey, we can iterate over a string with newline/return character IFS!
+		# make sure ALL user-provided drive ids exist in the configuration file, otherwise fail exit.
+		for drive_id in $drive_id_data_string
+		do
+			#echo "my new $drive_id"
+			echo "${incoming_array[elem_num]}" | grep -q "^$drive_id$" # grep for an exact match
+			arg_match=$?
+			#echo $arg_match
+			if [ $arg_match -eq 0 ] # program arg is valid match
+			then
+				continue 2 # up 2 levels
+			fi
+		done
 
 		# basically dropping out of this outer loop here, with arg_match=1 means bad argument, so exit
 		if [ $arg_match -ne 0 ] # the current program arg is NOT a valid match
@@ -380,9 +387,9 @@ function write_src_media_filenames_to_dst_files
 	#date=$(date +'%F')
 	#date=$(date +'%F@%T')
 
-	echo && echo "WARNING: Before continuing, make sure that source content directory contains ONLY expected subdirectories."
+	echo && echo "WARNING: Before continuing, make sure that source content directory contains ONLY expected subdirectories." && echo && echo
 
-	echo  "Then press ENTER to start writing the source media filenames to the storage location..." && echo
+	echo "Then press ENTER to start writing the source media filenames to the storage location..." && echo
 
 	read
 
@@ -393,6 +400,8 @@ function write_src_media_filenames_to_dst_files
 	# NOTE: VERY DANGEROUS TO USE * WITHIN THE rm command! eg #rm "${destination_holding_dir_fullpath}"/*
 	if [ -d $destination_holding_dir_fullpath ]
 	then	
+		echo "REMOVE THE EXISTING AUDIT DIRECTORY"
+		echo "===================================" && echo
 		rm -rfv $destination_holding_dir_fullpath && mkdir $destination_holding_dir_fullpath
 	else
 		mkdir -p $destination_holding_dir_fullpath
@@ -400,9 +409,9 @@ function write_src_media_filenames_to_dst_files
 
 	# RESET file_fullpaths_to_encrypt BETWEEN DRIVE AUDITS (before we start appending again later in this function)
 	file_fullpaths_to_encrypt=()
-	echo "file_fullpaths_to_encrypt: ${file_fullpaths_to_encrypt[@]}" #debug
-	echo "ABOVE SHOULD BE EMPTY NOW" #debug
-	read # debug
+	#echo "file_fullpaths_to_encrypt: ${file_fullpaths_to_encrypt[@]}" #debug
+	#echo "ABOVE SHOULD BE EMPTY NOW" #debug
+	#read # debug
 
 	for src_input_subdir_fullpath in "${source_holding_dir_fullpath}"/*
 	do
@@ -415,7 +424,7 @@ function write_src_media_filenames_to_dst_files
 
 		# find out if the current src_input_subdir_fullpath is configured to be ignored, if so we can skip to the next
 		test_for_ignore_subdir "$src_input_subdir_fullpath" 
-		return_code=$?; echo "return_code : $return_code"
+		return_code=$?; #echo "return_code : $return_code"
 		if [[ "$return_code" -eq 0 ]]
 		then
 			echo "IGNORING ::::::::::::     "$src_input_subdir_fullpath""
@@ -445,7 +454,7 @@ function write_src_media_filenames_to_dst_files
 		# WE'LL CALL A FUNCTION TO LOOP THROUGH THE secret_content_directories ARRAY:
 	
 		test_for_secret_dir "$src_input_subdir_fullpath" 
-		return_code=$?; echo "test_for_secret_dir return_code : $return_code"
+		return_code=$?; #echo "test_for_secret_dir return_code : $return_code"
 		if [[ "$return_code" -eq 0 ]] # yes, src_input_subdir_fullpath is secret
 		then
 			# NOW APPEND THE ARRAY
@@ -477,11 +486,11 @@ function write_src_media_filenames_to_dst_files
 # 
 function encrypt_secret_lists
 {		
-	echo && echo "ENTERED INTO FUNCTION ${FUNCNAME[0]}" && echo
+	#echo && echo "ENTERED INTO FUNCTION ${FUNCNAME[0]}" && echo
 
-	echo "file_fullpaths_to_encrypt: ${file_fullpaths_to_encrypt[@]}"
+	#echo "file_fullpaths_to_encrypt: ${file_fullpaths_to_encrypt[@]}"
 	#echo "ABOVE SHOULD BE EMPTY NOW" #debug
-	read # debug
+	#read # debug
 
 	# BASH ARRAYS ARE NOT 'FIRST CLASS VALUES' SO CAN'T BE PASSED AROUND LIKE ONE THING\
 	# - so since we're only intending to make a single call\
@@ -495,7 +504,7 @@ function encrypt_secret_lists
 	# now to trim that last trailing space character:
 	string_to_send=${string_to_send%[[:blank:]]}
 
-	echo "string_to_send: ${string_to_send}" && echo ## debug
+	#echo "string_to_send: ${string_to_send}" && echo ## debug
 
 	# REMIND ME, WHY ARE WE HERE AGAIN..?
 	# we want to replace EACH destination_output_file_fullpath file that we've written, with an encrypted version\
@@ -507,7 +516,7 @@ function encrypt_secret_lists
 	# reset string_to_send before next drive loop
 	string_to_send=""
 
-	echo && echo "LEAVING FROM FUNCTION ${FUNCNAME[0]}" && echo
+	#echo && echo "LEAVING FROM FUNCTION ${FUNCNAME[0]}" && echo
 
 }
 
@@ -526,40 +535,40 @@ function import_audit_configuration()
 
 	source_drive_label=$(cat "$config_file_fullpath" | jq -r --arg media_drive_id "$media_drive_id" '.media_drive_audits[] | select(.source_drive_label==$media_drive_id) | .source_drive_label') 
 
-	echo "source_drive_label: $source_drive_label"
-	echo && echo
+	#echo "source_drive_label: $source_drive_label"
+#	echo && echo
 
 	#########
 
 	source_directory=$(cat "$config_file_fullpath" | jq -r --arg media_drive_id "$media_drive_id" '.media_drive_audits[] | select(.source_drive_label==$media_drive_id) | .source_directory') 
 
-	echo "source_directory: $source_directory"
-	echo && echo
+	#echo "source_directory: $source_directory"
+	#echo && echo
 
 	#########
 
 	sub_dirs_to_ignore=$(cat "$config_file_fullpath" | jq -r --arg media_drive_id "$media_drive_id" '.media_drive_audits[] | select(.source_drive_label==$media_drive_id) | .sub_dirs_to_ignore[]')
 
-	echo $sub_dirs_to_ignore
+	#echo $sub_dirs_to_ignore
 
-	sub_dirs_to_ignore_array=( $sub_dirs_to_ignore ) # NOT NEEDED?
-	echo && echo "###########" && echo
+	sub_dirs_to_ignore_array=( $sub_dirs_to_ignore )
+	#echo && echo "###########" && echo
 
 	#########
 
 	sub_dirs_to_keep_secret=$(cat "$config_file_fullpath" | jq -r --arg media_drive_id "$media_drive_id" '.media_drive_audits[] | select(.source_drive_label==$media_drive_id) | .sub_dirs_to_keep_secret[]')
 
-	echo $sub_dirs_to_keep_secret
+	#echo $sub_dirs_to_keep_secret
 
-	sub_dirs_to_keep_secret_array=( $sub_dirs_to_keep_secret ) # NOT NEEDED?
-	echo && echo "###########" && echo
+	sub_dirs_to_keep_secret_array=( $sub_dirs_to_keep_secret )
+#	echo && echo "###########" && echo
 
 	#########
 
 	destination_directory=$(cat "$config_file_fullpath" | jq -r --arg media_drive_id "$media_drive_id" '.media_drive_audits[] | select(.source_drive_label==$media_drive_id) | .destination_directory') 
 
-	echo "destination_directory: $destination_directory"
-	echo && echo
+	#echo "destination_directory: $destination_directory"
+	#echo && echo
 
 	######### CONVERT ALL SUBDIRECTORY BASENAMES INTO FULLPATHS, AND ADD THEM TO NEW ARRAYS
 	for ((i=0; i<${#sub_dirs_to_ignore_array[@]}; i++));
@@ -579,16 +588,16 @@ function import_audit_configuration()
 	#	echo ${secret_content_directories[$i]}
 	done
 
-	echo "${directories_to_ignore[@]}"
-	echo "${secret_content_directories[@]}"
+	#echo "${directories_to_ignore[@]}"
+	#echo "${secret_content_directories[@]}"
 
 	######### COPY IMPORTED FULLPATHS TO NEW VARIABLES
 	source_holding_dir_fullpath="$source_directory"
 	destination_holding_dir_fullpath="$destination_directory"
 
 	echo
-	echo "source_holding_dir_fullpath: $source_holding_dir_fullpath"
-	echo "destination_holding_dir_fullpath: $destination_holding_dir_fullpath"
+#	echo "source_holding_dir_fullpath: $source_holding_dir_fullpath"
+#	echo "destination_holding_dir_fullpath: $destination_holding_dir_fullpath"
 
 
 	##########  NOW DO ALL THE DIRECTORY ACCESS TESTS FOR IMPORTED PATH VALUES HERE.
@@ -613,9 +622,10 @@ function import_audit_configuration()
 		return_code=$?
 		if [ $return_code -eq 0 ]
 		then
-			echo "The full path to the DIRECTORY is: $dir"
-			## UNCOMMENT IF WE'RE GONNA MKDIR IN THIS PROGRAM 
-			#elif [ $return_code -eq $E_REQUIRED_FILE_NOT_FOUND ]
+			#echo "The full path to the DIRECTORY is: $dir"
+			:
+		## UNCOMMENT IF WE'RE GONNA MKDIR IN THIS PROGRAM 
+		#elif [ $return_code -eq $E_REQUIRED_FILE_NOT_FOUND ]
 			#then
 			#	echo "The HOLDING (PARENT) DIRECTORY WAS NOT FOUND. test returned: $return_code"
 			#	echo "Creating the directory now..." && echo
@@ -642,10 +652,10 @@ function test_for_secret_dir
 
 	for secret_subdir_fullpath in "${secret_content_directories[@]}"
 	do
-		echo
-		echo "INSIDE THE SECRET TEST FUNCTION:"
-		echo "test_subdir_fullpath : $test_subdir_fullpath"
-		echo "secret_subdir_fullpath : $secret_subdir_fullpath"
+		#echo
+		#echo "INSIDE THE SECRET TEST FUNCTION:"
+		#echo "test_subdir_fullpath : $test_subdir_fullpath"
+		#echo "secret_subdir_fullpath : $secret_subdir_fullpath"
 
 		if [[ "$test_subdir_fullpath" == "$secret_subdir_fullpath" ]]
 		then
@@ -669,10 +679,10 @@ function test_for_ignore_subdir
 
 	for ignore_subdir_fullpath in "${directories_to_ignore[@]}"
 	do
-		echo
-		echo "INSIDE THE IGNORE TEST FUNCTION:"
-		echo "test_subdir_fullpath : $test_subdir_fullpath"
-		echo "ignore_subdir_fullpath : $ignore_subdir_fullpath"
+		#echo
+		#echo "INSIDE THE IGNORE TEST FUNCTION:"
+		#echo "test_subdir_fullpath : $test_subdir_fullpath"
+		#echo "ignore_subdir_fullpath : $ignore_subdir_fullpath"
 
 	#	if [[ "$test_subdir_fullpath" == "${source_holding_dir_fullpath}/$ignore_subdir_fullpath" ]]
 		if [[ "$test_subdir_fullpath" == "$ignore_subdir_fullpath" ]]
@@ -697,13 +707,13 @@ function test_for_ignore_subdir
 function sanitise_absolute_path_value ##
 {
 
-echo && echo "ENTERED INTO FUNCTION ${FUNCNAME[0]}" && echo
+#echo && echo "ENTERED INTO FUNCTION ${FUNCNAME[0]}" && echo
 
 	# sanitise values
 	# - trim leading and trailing space characters
 	# - trim trailing / for all paths
 	test_line="${1}"
-	echo "test line on entering "${FUNCNAME[0]}" is: $test_line" && echo
+	#echo "test line on entering "${FUNCNAME[0]}" is: $test_line" && echo
 
 	while [[ "$test_line" == *'/' ]] ||\
 	 [[ "$test_line" == *[[:blank:]] ]] ||\
@@ -719,9 +729,9 @@ echo && echo "ENTERED INTO FUNCTION ${FUNCNAME[0]}" && echo
 		test_line=${test_line%'/'}
 	done
 
-	echo "test line after trim cleanups in "${FUNCNAME[0]}" is: $test_line" && echo
+	#echo "test line after trim cleanups in "${FUNCNAME[0]}" is: $test_line" && echo
 
-echo && echo "LEAVING FROM FUNCTION ${FUNCNAME[0]}" && echo
+#echo && echo "LEAVING FROM FUNCTION ${FUNCNAME[0]}" && echo
 
 }
 
@@ -731,14 +741,14 @@ echo && echo "LEAVING FROM FUNCTION ${FUNCNAME[0]}" && echo
 function sanitise_relative_path_value
 {
 
-echo && echo "ENTERED INTO FUNCTION ${FUNCNAME[0]}" && echo
+#echo && echo "ENTERED INTO FUNCTION ${FUNCNAME[0]}" && echo
 
 	# sanitise values
 	# - trim leading and trailing space characters
 	# - trim leading / for relative paths
 	# - trim trailing / for all paths
 	test_line="${1}"
-	echo "test line on entering "${FUNCNAME[0]}" is: $test_line" && echo
+	#echo "test line on entering "${FUNCNAME[0]}" is: $test_line" && echo
 
 	while [[ "$test_line" == *'/' ]] ||\
 	 [[ "$test_line" == [[:blank:]]* ]] ||\
@@ -758,9 +768,9 @@ echo && echo "ENTERED INTO FUNCTION ${FUNCNAME[0]}" && echo
 	# afer this, test_line should just be the directory name
 	test_line=${test_line##'/'}
 
-	echo "test line after trim cleanups in "${FUNCNAME[0]}" is: $test_line" && echo
+#	echo "test line after trim cleanups in "${FUNCNAME[0]}" is: $test_line" && echo
 
-echo && echo "LEAVING FROM FUNCTION ${FUNCNAME[0]}" && echo
+#echo && echo "LEAVING FROM FUNCTION ${FUNCNAME[0]}" && echo
 
 }
 
@@ -770,12 +780,12 @@ echo && echo "LEAVING FROM FUNCTION ${FUNCNAME[0]}" && echo
 # 
 function test_file_path_valid_form
 {
-	echo && echo "ENTERED INTO FUNCTION ${FUNCNAME[0]}" && echo
+	#echo && echo "ENTERED INTO FUNCTION ${FUNCNAME[0]}" && echo
 
 	test_result=
 	test_file_fullpath=$1
 	
-	echo "test_file_fullpath is set to: $test_file_fullpath"
+	#echo "test_file_fullpath is set to: $test_file_fullpath"
 	#echo "test_subdir_fullpath is set to: $test_subdir_fullpath"
 
 	if [[ $test_file_fullpath =~ $abs_filepath_regex ]]
@@ -790,7 +800,7 @@ function test_file_path_valid_form
 	fi 
 
 
-	echo && echo "LEAVING FROM FUNCTION ${FUNCNAME[0]}" && echo
+	#echo && echo "LEAVING FROM FUNCTION ${FUNCNAME[0]}" && echo
 
 	return "$test_result"
 }
@@ -800,12 +810,12 @@ function test_file_path_valid_form
 # 
 function test_file_path_access
 {
-	echo && echo "ENTERED INTO FUNCTION ${FUNCNAME[0]}" && echo
+	#echo && echo "ENTERED INTO FUNCTION ${FUNCNAME[0]}" && echo
 
 	test_result=
 	test_file_fullpath=$1
 
-	echo "test_file_fullpath is set to: $test_file_fullpath"
+	#echo "test_file_fullpath is set to: $test_file_fullpath"
 
 	# test for expected file type (regular) and read permission
 	if [ -f "$test_file_fullpath" ] && [ -r "$test_file_fullpath" ]
@@ -820,7 +830,7 @@ function test_file_path_access
 		return $E_REQUIRED_FILE_NOT_FOUND
 	fi
 
-	echo && echo "LEAVING FROM FUNCTION ${FUNCNAME[0]}" && echo
+	#echo && echo "LEAVING FROM FUNCTION ${FUNCNAME[0]}" && echo
 
 	return "$test_result"
 }
@@ -829,12 +839,12 @@ function test_file_path_access
 # 
 function test_dir_path_access
 {
-	echo && echo "ENTERED INTO FUNCTION ${FUNCNAME[0]}" && echo
+	#echo && echo "ENTERED INTO FUNCTION ${FUNCNAME[0]}" && echo
 
 	test_result=
 	test_subdir_fullpath=$1
 
-	echo "test_subdir_fullpath is set to: $test_subdir_fullpath"
+	#echo "test_subdir_fullpath is set to: $test_subdir_fullpath"
 
 	if [ -d "$test_subdir_fullpath" ] && cd "$test_subdir_fullpath" 2>/dev/null
 	then
@@ -855,7 +865,7 @@ function test_dir_path_access
 		return $E_REQUIRED_FILE_NOT_FOUND
 	fi
 
-	echo && echo "LEAVING FROM FUNCTION ${FUNCNAME[0]}" && echo
+	#echo && echo "LEAVING FROM FUNCTION ${FUNCNAME[0]}" && echo
 
 	return "$test_result"
 }
