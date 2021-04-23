@@ -43,8 +43,8 @@ function main
 	# explicitly declaring variables to make code bit more robust - move to top so easier to manage
 
 	# THESE ARE ASSIGNED TO THE RAW, IMPORTED CONFIGURATION FILE DATA
-	destination-directory="" # single directory in which....# a full path to directory
-	source-directory="" # single directory from which....# a full path to directory
+	destination_directory="" # single directory in which....# a full path to directory
+	source_directory="" # single directory from which....# a full path to directory
 	declare -a sub_dirs_to_ignore_array=() # set of one or more relative path directories...
 	declare -a sub_dirs_to_keep_secret_array=() # set of one or more relative path directories...
 
@@ -292,7 +292,7 @@ function cleanup_and_validate_program_arguments()
 
 	# test that ALL remaining elements (program args) are valid drive ids, by checking config file
 	# (that we've just validated) get the drive ids from the configuration file, as a string
-	drive_id_data_string=$(cat "$config_file_fullpath" | jq -r '.media-drive-audits[] | .source-drive-label') 
+	drive_id_data_string=$(cat "$config_file_fullpath" | jq -r '.mediaDriveAudits[] | .sourceDriveLabel')
 
 	#echo "drive_id_data_string: $drive_id_data_string"
 	#echo && echo
@@ -533,49 +533,49 @@ function import_audit_configuration()
 
 	######## READ IN DATA FROM THE JSON CONFIGURATION FILE
 
-	source-drive-label=$(cat "$config_file_fullpath" | jq -r --arg media_drive_id "$media_drive_id" '.media-drive-audits[] | select(.source-drive-label==$media_drive_id) | .source-drive-label') 
+	sourceDriveLabel=$(cat "$config_file_fullpath" | jq -r --arg media_drive_id "$media_drive_id" '.mediaDriveAudits[] | select(.sourceDriveLabel==$media_drive_id) | .sourceDriveLabel') 
 
-	#echo "source-drive-label: $source-drive-label"
+	#echo "sourceDriveLabel: $sourceDriveLabel"
 #	echo && echo
 
 	#########
 
-	source-directory=$(cat "$config_file_fullpath" | jq -r --arg media_drive_id "$media_drive_id" '.media-drive-audits[] | select(.source-drive-label==$media_drive_id) | .source-directory') 
+	source_directory=$(cat "$config_file_fullpath" | jq -r --arg media_drive_id "$media_drive_id" '.mediaDriveAudits[] | select(.sourceDriveLabel==$media_drive_id) | .sourceDirectory') 
 
-	#echo "source-directory: $source-directory"
+	#echo "source_directory: $source_directory"
 	#echo && echo
 
 	#########
 
-	sub-dirs-to-ignore=$(cat "$config_file_fullpath" | jq -r --arg media_drive_id "$media_drive_id" '.media-drive-audits[] | select(.source-drive-label==$media_drive_id) | .sub-dirs-to-ignore[]')
+	subDirsToIgnore=$(cat "$config_file_fullpath" | jq -r --arg media_drive_id "$media_drive_id" '.mediaDriveAudits[] | select(.sourceDriveLabel==$media_drive_id) | .subDirsToIgnore[]')
 
-	#echo $sub-dirs-to-ignore
+	#echo $subDirsToIgnore
 
-	sub_dirs_to_ignore_array=( $sub-dirs-to-ignore )
+	sub_dirs_to_ignore_array=( $subDirsToIgnore )
 	#echo && echo "###########" && echo
 
 	#########
 
-	sub-dirs-to-keep-secret=$(cat "$config_file_fullpath" | jq -r --arg media_drive_id "$media_drive_id" '.media-drive-audits[] | select(.source-drive-label==$media_drive_id) | .sub-dirs-to-keep-secret[]')
+	subDirsToKeepSecret=$(cat "$config_file_fullpath" | jq -r --arg media_drive_id "$media_drive_id" '.mediaDriveAudits[] | select(.sourceDriveLabel==$media_drive_id) | .subDirsToKeepSecret[]')
 
-	#echo $sub-dirs-to-keep-secret
+	#echo $subDirsToKeepSecret
 
-	sub_dirs_to_keep_secret_array=( $sub-dirs-to-keep-secret )
+	sub_dirs_to_keep_secret_array=( $subDirsToKeepSecret )
 #	echo && echo "###########" && echo
 
 	#########
 
-	destination-directory=$(cat "$config_file_fullpath" | jq -r --arg media_drive_id "$media_drive_id" '.media-drive-audits[] | select(.source-drive-label==$media_drive_id) | .destination-directory') 
+	destination_directory=$(cat "$config_file_fullpath" | jq -r --arg media_drive_id "$media_drive_id" '.mediaDriveAudits[] | select(.sourceDriveLabel==$media_drive_id) | .destinationDirectory') 
 
-	#echo "destination-directory: $destination-directory"
+	#echo "destination_directory: $destination_directory"
 	#echo && echo
 
 	######### CONVERT ALL SUBDIRECTORY BASENAMES INTO FULLPATHS, AND ADD THEM TO NEW ARRAYS
 	for ((i=0; i<${#sub_dirs_to_ignore_array[@]}; i++));
 	do
-		#echo $source-directory
+		#echo $source_directory
 		#echo ${sub_dirs_to_ignore_array[$i]}
-		fullpath=${source-directory}/${sub_dirs_to_ignore_array[$i]}
+		fullpath=${source_directory}/${sub_dirs_to_ignore_array[$i]}
 		#echo $fullpath
 		directories_to_ignore[$i]="$fullpath"
 		#echo "${directories_to_ignore[$i]}"
@@ -583,7 +583,7 @@ function import_audit_configuration()
 	####
 	for ((i=0; i<${#sub_dirs_to_keep_secret_array[@]}; i++));
 	do
-		fullpath=${source-directory}/${sub_dirs_to_keep_secret_array[$i]}
+		fullpath=${source_directory}/${sub_dirs_to_keep_secret_array[$i]}
 		secret_content_directories[$i]=$fullpath
 	#	echo ${secret_content_directories[$i]}
 	done
@@ -592,8 +592,8 @@ function import_audit_configuration()
 	#echo "${secret_content_directories[@]}"
 
 	######### COPY IMPORTED FULLPATHS TO NEW VARIABLES
-	source_holding_dir_fullpath="$source-directory"
-	destination_holding_dir_fullpath="$destination-directory"
+	source_holding_dir_fullpath="$source_directory"
+	destination_holding_dir_fullpath="$destination_directory"
 
 	echo
 #	echo "source_holding_dir_fullpath: $source_holding_dir_fullpath"
@@ -892,3 +892,7 @@ main "$@"; exit
 # 	REGULAR FILES TO IGNORE
 #	REGULAR FILES TO ENCRYPT
 
+# NOTES:
+# ======
+# NOTE: jq does not handle hyphenated filter argument quoting and faffing. Think I read something about that
+# in the docs. Better to just use camelCased JSON property names universally.

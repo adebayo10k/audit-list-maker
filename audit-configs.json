@@ -1,29 +1,29 @@
 {
-  "media-drive-audits": [
+  "mediaDriveAudits": [
     {
-      "source-drive-label": "DRIVE_000",
-      "source-directory": "/media/user/8TB_EXT_DRIVE_0",
-      "sub-dirs-to-ignore": [
+      "sourceDriveLabel": "DRIVE_000",
+      "sourceDirectory": "/media/user/8TB_EXT_DRIVE_0",
+      "subDirsToIgnore": [
         "encrypted_dir",
         "temporary_dir"
       ],
-      "sub-dirs-to-keep-secret": [
+      "subDirsToKeepSecret": [
         "keyfile_knowlege"
       ],
-      "destination-directory": "/home/user/path/to/dst/media-audit-DRIVE_000"
+      "destinationDirectory": "/home/user/path/to/dst/media-audit-DRIVE_000"
     },
     {
-      "source-drive-label": "DRIVE_000",
-      "source-directory": "/media/user/8TB_EXT_DRIVE_1",
-      "sub-dirs-to-ignore": [
+      "sourceDriveLabel": "DRIVE_000",
+      "sourceDirectory": "/media/user/8TB_EXT_DRIVE_1",
+      "subDirsToIgnore": [
         "ignore0",
         "ignore1"
       ],
-      "sub-dirs-to-keep-secret": [
+      "subDirsToKeepSecret": [
         "enemy_list",
         "prawn_salads"
       ],
-      "destination-directory": "/home/user/path/to/dst/media-audit-DRIVE_001"
+      "destinationDirectory": "/home/user/path/to/dst/media-audit-DRIVE_001"
     }
   ]
 }
