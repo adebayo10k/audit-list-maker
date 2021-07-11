@@ -9,6 +9,59 @@
 #: Options		:
 ##
 
+##################################################################
+##################################################################
+# THIS STUFF IS HAPPENING BEFORE MAIN FUNCTION CALL:
+#===================================
+
+# 1. MAKE SHARED LIBRARY FUNCTIONS AVAILABLE HERE
+
+# make all those library function available to this script
+shared_bash_functions_fullpath="${SHARED_LIBRARIES_DIR}/shared-bash-functions.sh"
+
+if [ -f "$shared_bash_functions_fullpath" ]
+then
+	echo "got our library functions ok"
+else
+	echo "failed to get our functions library. Exiting now."
+	exit 1
+fi
+
+source "$shared_bash_functions_fullpath"
+
+# 2. MAKE SCRIPT-SPECIFIC FUNCTIONS AVAILABLE HERE
+
+# must resolve canonical_fullpath here, in order to be able to include sourced function files BEFORE we call main, and  outside of any other functions defined here, of course.
+
+# at runtime, command_fullpath may be either a symlink file or actual target source file
+command_fullpath="$0"
+command_dirname="$(dirname $0)"
+command_basename="$(basename $0)"
+
+# if a symlink file, then we need a reference to the canonical file name, as that's the location where all our required source files will be.
+# we'll test whether a symlink, then use readlink -f or realpath -e although those commands return canonical file whether symlink or not.
+# 
+canonical_fullpath="$(readlink -f $command_fullpath)"
+canonical_dirname="$(dirname $canonical_fullpath)"
+
+# this is just development debug information
+if [ -h "$command_fullpath" ]
+then
+	echo "is symlink"
+	echo "canonical_fullpath : $canonical_fullpath"
+else
+	echo "is canonical"
+	echo "canonical_fullpath : $canonical_fullpath"
+fi
+
+# included source files for json profile import functions
+#source "${canonical_dirname}/preset-profile-builder.inc.sh"
+
+
+# THAT STUFF JUST HAPPENED BEFORE MAIN FUNCTION CALL!
+##################################################################
+##################################################################
+
 
 function main
 {
@@ -147,7 +200,7 @@ function main
 		
 	else
 		msg="NO CONFIG FOR YOU. Exiting now..."
-		exit_with_error "$E_REQUIRED_FILE_NOT_FOUND" "$msg" 	
+		lib10k_exit_with_error "$E_REQUIRED_FILE_NOT_FOUND" "$msg" 	
 	fi
 
 	echo "audit-list-maker exit code: $?" #&& exit 
@@ -164,20 +217,6 @@ function main
 ####  FUNCTION DECLARATIONS  
 ###############################################################################################
 
-# exit program with non-zero exit code
-function exit_with_error()
-{	
-	error_code="$1"
-	error_message="$2"
-
-	echo "EXIT CODE: $error_code" | tee -a $LOG_FILE
-	echo "$error_message" | tee -a $LOG_FILE && echo && sleep 1
-	echo "USAGE: $(basename $0) CONFIGURATION_FILE [MEDIA_DRIVE_ID]..." | tee -a $LOG_FILE && echo && sleep 1
-
-	exit $error_code
-}
-
-###############################################################################################
 # quick check that number of program arguments is within the valid range
 function check_no_of_program_args()
 {
@@ -188,7 +227,7 @@ function check_no_of_program_args()
 	$actual_no_of_program_parameters -gt $max_expected_no_of_program_parameters  ]
 	then
 		msg="Incorrect number of command line arguments. Exiting now..."
-		exit_with_error "$E_INCORRECT_NUMBER_OF_ARGS" "$msg"
+		lib10k_exit_with_error "$E_INCORRECT_NUMBER_OF_ARGS" "$msg"
 	fi
 	
 	#echo && echo "Leaving from function ${FUNCNAME[0]}" && echo
@@ -214,7 +253,7 @@ function check_program_requirements()
 			echo "${program_name} is NOT installed." | tee -a $LOG_FILE
 			echo "program dependencies are: ${program_dependencies[@]}" | tee -a $LOG_FILE
   		msg="Required program not found. Exiting now..."
-			exit_with_error "$E_REQUIRED_PROGRAM_NOT_FOUND" "$msg"
+			lib10k_exit_with_error "$E_REQUIRED_PROGRAM_NOT_FOUND" "$msg"
 		fi
 	done
 
@@ -323,7 +362,7 @@ function cleanup_and_validate_program_arguments()
 		if [ $arg_match -ne 0 ] # the current program arg is NOT a valid match
 		then
 			msg="The valid program args test FAILED. Exiting now..."
-			exit_with_error "$E_UNEXPECTED_ARG_VALUE" "$msg"
+			lib10k_exit_with_error "$E_UNEXPECTED_ARG_VALUE" "$msg"
 		fi
 	done
 
@@ -347,7 +386,7 @@ function validate_absolute_path_value()
 		echo "The absolute filepath is of VALID FORM"
 	else
 		msg="The valid form test FAILED and returned: $return_code. Exiting now..."
-		exit_with_error "$E_UNEXPECTED_ARG_VALUE" "$msg"
+		lib10k_exit_with_error "$E_UNEXPECTED_ARG_VALUE" "$msg"
 	fi
 
 	# if the above test returns ok, ...
@@ -358,7 +397,7 @@ function validate_absolute_path_value()
 		echo "The  absolute filepath is ACCESSIBLE OK"
 	else
 		msg="The configuration filepath ACCESS TEST FAILED and returned: $return_code. Exiting now..."
-		exit_with_error "$E_FILE_NOT_ACCESSIBLE" "$msg"
+		lib10k_exit_with_error "$E_FILE_NOT_ACCESSIBLE" "$msg"
 	fi
 
 
@@ -614,7 +653,7 @@ function import_audit_configuration()
 		else
 			echo "returned: $return_code"
 			msg="The valid form test FAILED. Exiting now..."
-			exit_with_error "$E_UNEXPECTED_ARG_VALUE" "$msg"
+			lib10k_exit_with_error "$E_UNEXPECTED_ARG_VALUE" "$msg"
 		fi	
 
 		# if the above test returns ok, ...
@@ -633,7 +672,7 @@ function import_audit_configuration()
 		else
 			echo "test returned: $return_code"
 			msg="The DIRECTORY path NOT FOUND OR NOT ACCESSIBLE. Exiting now..."
-			exit_with_error "$E_FILE_NOT_ACCESSIBLE" "$msg"
+			lib10k_exit_with_error "$E_FILE_NOT_ACCESSIBLE" "$msg"
 		fi 
 
 	done
