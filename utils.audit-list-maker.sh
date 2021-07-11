@@ -3,9 +3,9 @@
 #: Date			:2019-07-05
 #: Author		:adebayo10k
 #: Version		:1.0
-#: Description	:create independently stored reference listings of the media files
+#: Description	:create independently stored reference listings of the media filenames
 #: Description	:on a drive when the backup of those files is not really justified.
-#: Description	:backup reacquire recreate jq reinstall reapply repopulate reinstate rewrite
+#: Description	:backup, reacquire, recreate, jq reinstall reapply repopulate reinstate rewrite
 #: Options		:
 ##
 
@@ -18,16 +18,23 @@
 
 # make all those library function available to this script
 shared_bash_functions_fullpath="${SHARED_LIBRARIES_DIR}/shared-bash-functions.sh"
+shared_bash_constants_fullpath="${SHARED_LIBRARIES_DIR}/shared-bash-constants.inc.sh"
 
-if [ -f "$shared_bash_functions_fullpath" ]
-then
-	echo "got our library functions ok"
-else
-	echo "failed to get our functions library. Exiting now."
-	exit 1
-fi
+for resource in "$shared_bash_functions_fullpath" "$shared_bash_constants_fullpath"
+do
+	if [ -f "$resource" ]
+	then
+		echo "Required library resource FOUND OK at:"
+		echo "$resource"
+		source "$resource"
+	else
+		echo "Could not find the required resource at:"
+		echo "$resource"
+		echo "Check that location. Nothing to do now, except exit."
+		exit 1
+	fi
+done
 
-source "$shared_bash_functions_fullpath"
 
 # 2. MAKE SCRIPT-SPECIFIC FUNCTIONS AVAILABLE HERE
 
@@ -65,22 +72,8 @@ fi
 
 function main
 {
-	###############################################################################################
+	#######################################################################
 	# GLOBAL VARIABLE DECLARATIONS:
-	###############################################################################################
-
-	## EXIT CODES:
-	export E_UNEXPECTED_BRANCH_ENTERED=10
-	export E_OUT_OF_BOUNDS_BRANCH_ENTERED=11
-	export E_INCORRECT_NUMBER_OF_ARGS=12
-	export E_UNEXPECTED_ARG_VALUE=13
-	export E_REQUIRED_FILE_NOT_FOUND=20
-	export E_REQUIRED_PROGRAM_NOT_FOUND=21
-	export E_UNKNOWN_RUN_MODE=30
-	export E_UNKNOWN_EXECUTION_MODE=31
-	export E_FILE_NOT_ACCESSIBLE=40
-	export E_UNKNOWN_ERROR=32
-
 	#######################################################################
 
 	program_param_0=${1:-"not_set"}
@@ -107,9 +100,6 @@ function main
 	declare -a directories_to_ignore=() # set of one or more relative path directories...
 	declare -a secret_content_directories=() # set of one or more relative path directories...
 
-	abs_filepath_regex='^(/{1}[A-Za-z0-9._~:@-]+)+$' # absolute file path, ASSUMING NOT HIDDEN FILE, placing dash at the end!...
-	#all_filepath_regex='^(/?[A-Za-z0-9._~:@-]+)+$' # both relative and absolute file path
-	subdir_basename_regex='^[A-Za-z0-9._~:@-]+$' # subdirectory basename
 
 	declare -a file_fullpaths_to_encrypt=() # set of destination files (reset between device loops)
 	#test_subdir_fullpath ## a full path to directory [[[ LOCAL CONTROL IN 1 FUNC ]]]
@@ -827,12 +817,12 @@ function test_file_path_valid_form
 	#echo "test_file_fullpath is set to: $test_file_fullpath"
 	#echo "test_subdir_fullpath is set to: $test_subdir_fullpath"
 
-	if [[ $test_file_fullpath =~ $abs_filepath_regex ]]
+	if [[ $test_file_fullpath =~ $ABS_FILEPATH_NO_TB_REGEX ]]
 	then
 		echo "THE FORM OF THE INCOMING PARAMETER IS OF A VALID ABSOLUTE FILE PATH"
 		test_result=0
 	else
-		echo "AN INCOMING PARAMETER WAS SET, BUT WAS NOT A MATCH FOR OUR KNOWN PATH FORM REGEX "$abs_filepath_regex"" && sleep 1 && echo
+		echo "AN INCOMING PARAMETER WAS SET, BUT WAS NOT A MATCH FOR OUR KNOWN PATH FORM REGEX "$ABS_FILEPATH_NO_TB_REGEX"" && sleep 1 && echo
 		echo "Returning with a non-zero test result..."
 		test_result=1
 		return $E_UNEXPECTED_ARG_VALUE
