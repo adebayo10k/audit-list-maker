@@ -83,6 +83,10 @@ function main
 	actual_no_of_program_parameters=$#
 	all_the_parameters_string="$@"
 
+	program_title=""
+	original_author=""
+	program_dependencies=(jq cowsay vi file-encrypter.sh gpg)
+
 	test_line="" # global...
 	config_file_fullpath= # a full path to a file
 
@@ -125,7 +129,7 @@ function main
 	check_no_of_program_args
 
 	# check program dependencies and requirements
-	check_program_requirements
+	check_program_requirements "${program_dependencies[@]}"
 
 	# cleanup and validate, test program positional parameters
 	# required parameter sequence is : CONFIGURATION_FILE, [MEDIA_DRIVE_ID]...
@@ -225,32 +229,6 @@ function check_no_of_program_args()
 }
 
 ###############################################################################################
-# check whether dependencies are already installed ok on this system
-function check_program_requirements() 
-{
-	declare -a program_dependencies=(jq cowsay vi file-encrypter.sh gpg)
-
-	echo
-	echo "PROGRAM REQUIREMENTS CHECK"
-	echo "==========================" && echo
-
-	for program_name in ${program_dependencies[@]}
-	do
-	  if type $program_name >/dev/null 2>&1
-		then
-			echo "An existing version of $program_name has been FOUND OK" | tee -a $LOG_FILE
-		else
-			echo "${program_name} is NOT installed." | tee -a $LOG_FILE
-			echo "program dependencies are: ${program_dependencies[@]}" | tee -a $LOG_FILE
-  		msg="Required program not found. Exiting now..."
-			lib10k_exit_with_error "$E_REQUIRED_PROGRAM_NOT_FOUND" "$msg"
-		fi
-	done
-
-	echo
-}
-
-###############################################################################################
 # entry test to prevent running this program on an inappropriate host
 function entry_test()
 {
@@ -259,7 +237,7 @@ function entry_test()
 }
 
 ####################################################################################################
-function display_program_header
+function display_program_header()
 {
 
 	# Display a program header and give user option to leave if here in error:
