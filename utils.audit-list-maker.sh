@@ -65,7 +65,7 @@ fi
 #source "${canonical_dirname}/preset-profile-builder.inc.sh"
 
 
-# THAT STUFF JUST HAPPENED BEFORE MAIN FUNCTION CALL!
+# THAT STUFF JUST HAPPENED (EXECUTED) BEFORE MAIN FUNCTION CALL!
 ##################################################################
 ##################################################################
 
@@ -75,6 +75,14 @@ function main
 	#######################################################################
 	# GLOBAL VARIABLE DECLARATIONS:
 	#######################################################################
+
+	actual_host=$(hostname)
+	unset authorised_host_list
+	declare -a authorised_host_list=($HOST_0065 $HOST_0054 $HOST_R001 $HOST_R002)  # allow | deny
+	if [[ $(declare -a | grep 'authorised_host_list' 2>/dev/null) ]]
+	then
+		entry_test
+	fi
 
 	program_param_0=${1:-"not_set"}
 
@@ -135,14 +143,6 @@ function main
 	# required parameter sequence is : CONFIGURATION_FILE, [MEDIA_DRIVE_ID]...
 	cleanup_and_validate_program_arguments
 
-	# entry test to prevent running this program on an inappropriate host
-	# entry tests apply only to those highly host-specific or filesystem-specific programs that are hard to generalise
-	if [[ $(declare -a | grep 'authorised_host_list' 2>/dev/null) ]]; then
-		entry_test
-	else
-		echo "entry test skipped..." && sleep 1 && echo
-	fi
-			
 	
 	###############################################################################################
 	# $SHLVL DEPENDENT FUNCTION CALLS:	
@@ -207,15 +207,6 @@ function main
 ####  FUNCTION DECLARATIONS  
 ##################################################################################
 
-# entry test to prevent running this program on an inappropriate host
-function entry_test()
-{
-	#
-	:
-}
-
-##########################################################################################################
-# 
 function cleanup_and_validate_program_arguments()
 {	
 
@@ -316,14 +307,6 @@ function validate_absolute_path_value()
 
 }
 
-##########################################################################################################
-function display_current_config_file
-{
-	echo && echo CURRENT CONFIGURATION FILE...
-	echo && sleep 1
-
-	cat "$config_file_fullpath" && echo
-}
 ##########################################################################################################
 function write_src_media_filenames_to_dst_files
 {
