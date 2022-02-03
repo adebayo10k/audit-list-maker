@@ -46,12 +46,12 @@ command_dirname="$(dirname $0)"
 command_basename="$(basename $0)"
 
 # if a symlink file, then we need a reference to the canonical file name, as that's the location where all our required source files will be.
-# we'll test whether a symlink, then use readlink -f or realpath -e although those commands return canonical file whether symlink or not.
+# we'll test whether a symlink, then use readlink -f or realpath -e, although those commands return canonical file whether symlink or not.
 # 
 canonical_fullpath="$(readlink -f $command_fullpath)"
 canonical_dirname="$(dirname $canonical_fullpath)"
 
-# this is just development debug information
+# NOTE: this is just development debug information
 if [ -h "$command_fullpath" ]
 then
 	echo "is symlink"
