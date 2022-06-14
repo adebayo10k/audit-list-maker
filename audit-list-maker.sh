@@ -2,98 +2,43 @@
 #: Title		:utils.audit-list-maker.sh
 #: Date			:2019-07-05
 #: Author		:adebayo10k
-#: Version		:1.0
+#: Version		:
 #: Description	:create independently stored reference listings of the media filenames
 #: Description	:on a drive when the backup of those files is not really justified.
 #: Description	:backup, reacquire, recreate, jq reinstall reapply repopulate reinstate rewrite
 #: Options		:
-##
 
-##################################################################
-##################################################################
-# THIS STUFF IS HAPPENING BEFORE MAIN FUNCTION CALL:
-#===================================
+## THIS STUFF IS HAPPENING BEFORE MAIN FUNCTION CALL:
 
-# 1. MAKE SHARED LIBRARY FUNCTIONS AVAILABLE HERE
+command_fullpath="$(readlink -f $0)" 
+command_basename="$(basename $command_fullpath)"
+command_dirname="$(dirname $command_fullpath)"
 
-# make all the shared library functions available to this script
-shared_bash_functions_fullpath="${SHARED_LIBRARIES_DIR}/shared-bash-functions.inc.sh"
-shared_bash_constants_fullpath="${SHARED_LIBRARIES_DIR}/shared-bash-constants.inc.sh"
-
-for resource in "$shared_bash_functions_fullpath" "$shared_bash_constants_fullpath"
+for file in "${command_dirname}/includes"/*
 do
-	if [ -f "$resource" ]
-	then
-		echo "Required library resource FOUND OK at:"
-		echo "$resource"
-		source "$resource"
-	else
-		echo "Could not find the required resource at:"
-		echo "$resource"
-		echo "Check that location. Nothing to do now, except exit."
-		exit 1
-	fi
+	source "$file"
 done
 
-
-# 2. MAKE SCRIPT-SPECIFIC FUNCTIONS AVAILABLE HERE
-
-# must resolve canonical_fullpath here, in order to be able to include sourced function files BEFORE we call main, and  outside of any other functions defined here, of course.
-
-# at runtime, command_fullpath may be either a symlink file or actual target source file
-command_fullpath="$0"
-command_dirname="$(dirname $0)"
-command_basename="$(basename $0)"
-
-# if a symlink file, then we need a reference to the canonical file name, as that's the location where all our required source files will be.
-# we'll test whether a symlink, then use readlink -f or realpath -e, although those commands return canonical file whether symlink or not.
-# 
-canonical_fullpath="$(readlink -f $command_fullpath)"
-canonical_dirname="$(dirname $canonical_fullpath)"
-
-# NOTE: this is just development debug information
-if [ -h "$command_fullpath" ]
-then
-	echo "is symlink"
-	echo "canonical_fullpath : $canonical_fullpath"
-else
-	echo "is canonical"
-	echo "canonical_fullpath : $canonical_fullpath"
-fi
-
-# included source files for json profile import functions
-#source "${canonical_dirname}/preset-profile-builder.inc.sh"
-
-
-# THAT STUFF JUST HAPPENED (EXECUTED) BEFORE MAIN FUNCTION CALL!
-##################################################################
-##################################################################
-
+## THAT STUFF JUST HAPPENED (EXECUTED) BEFORE MAIN FUNCTION CALL!
 
 function main
 {
-	#######################################################################
+	##############################
 	# GLOBAL VARIABLE DECLARATIONS:
-	#######################################################################
+	##############################
+	program_title="audit list maker"
+	original_author="damola adebayo"
+	program_dependencies=("jq" "gpg")
 
-	actual_host=$(hostname)
-	unset authorised_host_list
-	declare -a authorised_host_list=($HOST_0065 $HOST_0054 $HOST_R001 $HOST_R002)  # allow | deny
-	if [[ $(declare -a | grep 'authorised_host_list' 2>/dev/null) ]]
-	then
-		entry_test
-	fi
-
-	program_param_0=${1:-"not_set"}
-
-	max_expected_no_of_program_parameters=3
-	min_expected_no_of_program_parameters=2
-	actual_no_of_program_parameters=$#
+	declare -i max_expected_no_of_program_parameters=3
+	declare -i min_expected_no_of_program_parameters=2
+	declare -ir actual_no_of_program_parameters=$#
 	all_the_parameters_string="$@"
 
-	program_title=""
-	original_author=""
-	program_dependencies=(jq cowsay vi file-encrypter.sh gpg)
+	declare -a authorised_host_list=()
+	actual_host=`hostname`
+
+	program_param_0=${1:-"not_set"}
 
 	test_line="" # global...
 	config_file_fullpath= # a full path to a file
@@ -127,46 +72,53 @@ function main
 	#destination_output_file_name # a filename date augmented 
 	#destination_output_file_fullpath # # a full path to a file (.. to destination_output_file_name)
 
-	#######################################################################
+	#####################################
 
-	###############################################################################################
+	#####################################
 	# 'SHOW STOPPER' FUNCTION CALLS:	
-	###############################################################################################
+	#####################################
+	if [ ! $USER = 'root' ]
+	then
+		## Display a program header
+		lib10k_display_program_header "$program_title" "$original_author"
+		## check program dependencies and requirements
+		lib10k_check_program_requirements "${program_dependencies[@]}"
+	fi
+	
+	# check the number of parameters to this program
+	lib10k_check_no_of_program_args
 
-	# count program positional parameters
-	check_no_of_program_args
-
-	# check program dependencies and requirements
-	check_program_requirements "${program_dependencies[@]}"
-
+	# controls where this program can be run, to avoid unforseen behaviour
+	lib10k_entry_test
+	
 	# cleanup and validate, test program positional parameters
 	# required parameter sequence is : CONFIGURATION_FILE, [MEDIA_DRIVE_ID]...
 	cleanup_and_validate_program_arguments
 
 	
-	###############################################################################################
+	#####################################
 	# $SHLVL DEPENDENT FUNCTION CALLS:	
-	###############################################################################################
+	#####################################
 
 	echo "OUR CURRENT SHELL LEVEL IS: $SHLVL"
 	# using $SHLVL to show whether this script was called from another script, or from command line
 	if [ $SHLVL -le 3 ]
 	then
 		# Display a descriptive and informational program header:
-		display_program_header
+		lib10k_display_program_header
 
 		# give user option to leave if here in error:
-		get_user_permission_to_proceed
+		lib10k_get_user_permission_to_proceed
 	fi
 
 
-	###############################################################################################
+	#####################################
 	# PROGRAM-SPECIFIC FUNCTION CALLS:	
-	###############################################################################################	
+	#####################################	
 	
 	if [ -n "$config_file_fullpath" ]
 	then		
-		display_current_config_file
+		lib10k_display_current_config_file
 
 		# for-loop over
 		# incoming array is visible here too! ok cool.
@@ -197,15 +149,15 @@ function main
 
 } ## end main
 
-##########################################################################################################
+################################################
 
 
 
 
 
-###############################################################################################
+#####################################
 ####  FUNCTION DECLARATIONS  
-##################################################################################
+################################################
 
 function cleanup_and_validate_program_arguments()
 {	
@@ -222,7 +174,7 @@ function cleanup_and_validate_program_arguments()
 	#sanitise_absolute_path_value "${incoming_array[0]}"
 	#echo "test_line has the value: $test_line"
 
-	make_abs_pathname "${incoming_array[0]}"
+	lib10k_make_abs_pathname "${incoming_array[0]}"
 	echo "test_line has the value: $test_line"
 	
 	absolute_path_trimmed=$test_line
@@ -272,7 +224,7 @@ function cleanup_and_validate_program_arguments()
 
 }
 
-###############################################################################################
+#####################################
 # exits if any problem with path
 function validate_absolute_path_value()
 {
@@ -281,7 +233,7 @@ function validate_absolute_path_value()
 	test_filepath="$1"
 
 	# this valid form test works for sanitised file paths
-	test_file_path_valid_form "$test_filepath"
+	lib10k_test_file_path_valid_form "$test_filepath"
 	return_code=$?
 	if [ $return_code -eq 0 ]
 	then
@@ -292,7 +244,7 @@ function validate_absolute_path_value()
 	fi
 
 	# if the above test returns ok, ...
-	test_file_path_access "$test_filepath"
+	lib10k_test_file_path_access "$test_filepath"
 	return_code=$?
 	if [ $return_code -eq 0 ]
 	then
@@ -307,7 +259,7 @@ function validate_absolute_path_value()
 
 }
 
-##########################################################################################################
+################################################
 function write_src_media_filenames_to_dst_files
 {
 
@@ -415,7 +367,7 @@ function write_src_media_filenames_to_dst_files
 	done	
 
 }
-##########################################################################################################
+################################################
 # 
 function encrypt_secret_lists
 {		
@@ -427,7 +379,7 @@ function encrypt_secret_lists
 
 	# BASH ARRAYS ARE NOT 'FIRST CLASS VALUES' SO CAN'T BE PASSED AROUND LIKE ONE THING\
 	# - so since we're only intending to make a single call\
-	# to file-encrypter.sh, we need to make an IFS separated string argument
+	# to gpg-file-encrypt.sh, we need to make an IFS separated string argument
 	for filename in "${file_fullpaths_to_encrypt[@]}"
 	do
 		#echo "888888888888888888888888888888888888888888888888888888888888888888"
@@ -441,10 +393,10 @@ function encrypt_secret_lists
 
 	# REMIND ME, WHY ARE WE HERE AGAIN..?
 	# we want to replace EACH destination_output_file_fullpath file that we've written, with an encrypted version\
-	# ... we therefore call file-encrypter.sh script to handle this file encryption task.
+	# ... we therefore call gpg-file-encrypt.sh script to handle this file encryption task.
 	## the command argument is deliberately unquoted, so the default\
 	# space character IFS DOES separate the string into arguments
-	file-encrypter.sh $string_to_send
+	"${command_dirname}/gpg-file-encrypt.sh" $string_to_send
 
 	# reset string_to_send before next drive loop
 	string_to_send=""
@@ -453,7 +405,7 @@ function encrypt_secret_lists
 
 }
 
-##########################################################################################################
+################################################
 # read in, convert and reassign, validate
 function import_audit_configuration()
 {
@@ -539,7 +491,7 @@ function import_audit_configuration()
 	do
 
 		# this valid form test works for sanitised directory paths
-		test_file_path_valid_form "$dir"
+		lib10k_test_file_path_valid_form "$dir"
 		return_code=$?
 		if [ $return_code -eq 0 ]
 		then
@@ -551,7 +503,7 @@ function import_audit_configuration()
 		fi	
 
 		# if the above test returns ok, ...
-		test_dir_path_access "$dir"
+		lib10k_test_dir_path_access "$dir"
 		return_code=$?
 		if [ $return_code -eq 0 ]
 		then
@@ -577,7 +529,7 @@ function import_audit_configuration()
 
 }
 
-##########################################################################################################
+################################################
 # return a match for dir paths in the secret_subdir_fullpath array, set a result and return immediately
 function test_for_secret_dir
 {
@@ -604,7 +556,7 @@ function test_for_secret_dir
 
 }
 
-##########################################################################################################
+################################################
 # return a match for dir paths in the directories_to_ignore array, set a result and return (break out) immediately
 function test_for_ignore_subdir
 {
@@ -633,7 +585,7 @@ function test_for_ignore_subdir
 
 }
 
-###############################################################################################
+#####################################
 
 main "$@"; exit
 

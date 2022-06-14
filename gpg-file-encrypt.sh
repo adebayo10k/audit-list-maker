@@ -1,0 +1,1 @@
+/home/damola/bin/utils/gpg-json-encryption-profiles/gpg-file-encrypt.sh
