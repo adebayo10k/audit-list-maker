@@ -95,27 +95,12 @@ function main
 	# required parameter sequence is : CONFIGURATION_FILE, [MEDIA_DRIVE_ID]...
 	cleanup_and_validate_program_arguments
 
-	
-	#####################################
-	# $SHLVL DEPENDENT FUNCTION CALLS:	
-	#####################################
-
-	echo "OUR CURRENT SHELL LEVEL IS: $SHLVL"
-	# using $SHLVL to show whether this script was called from another script, or from command line
-	if [ $SHLVL -le 3 ]
-	then
-		# Display a descriptive and informational program header:
-		lib10k_display_program_header
-
-		# give user option to leave if here in error:
-		lib10k_get_user_permission_to_proceed
-	fi
-
+	# give user option to leave if here in error:
+	lib10k_get_user_permission_to_proceed
 
 	#####################################
 	# PROGRAM-SPECIFIC FUNCTION CALLS:	
 	#####################################	
-	
 	if [ -n "$config_file_fullpath" ]
 	then		
 		lib10k_display_current_config_file
@@ -129,7 +114,6 @@ function main
 			# IMPORT CONFIGURATION DATA INTO PROGRAM VARIABLES
 			import_audit_configuration "${incoming_array[elem_num]}"
 			#
-			#exit 0 # debug
 			write_src_media_filenames_to_dst_files
 
 			if [ ${#file_fullpaths_to_encrypt[@]} -gt 0 ]
@@ -137,6 +121,7 @@ function main
 				encrypt_secret_lists
 			fi
 			echo && echo "JUST GOT BACK FROM ENCRYPTION SERVICES"
+			echo && echo "|||||||||||  NEXT DEVICE..... ||||||||||||" && echo && echo
 
 		done
 		
@@ -149,25 +134,19 @@ function main
 
 } ## end main
 
-################################################
-
-
-
-
 
 #####################################
 ####  FUNCTION DECLARATIONS  
-################################################
+#####################################
 
 function cleanup_and_validate_program_arguments()
-{	
-
-	echo "$all_the_parameters_string" && echo
+{
+	echo "Program Parameters: $all_the_parameters_string" && echo
 
 	incoming_array=( $all_the_parameters_string )
 	#echo "incoming_array[@]: ${incoming_array[@]}"
 
-	# test that element 0 is a valid file
+	# TODO: test that element 0 is a valid file
 		# if so, set the configfile variable
 		# test that remaining elements are valid drive ids, by checking config file
 	
@@ -285,7 +264,7 @@ function write_src_media_filenames_to_dst_files
 	# NOTE: VERY DANGEROUS TO USE * WITHIN THE rm command! eg #rm "${destination_holding_dir_fullpath}"/*
 	if [ -d $destination_holding_dir_fullpath ]
 	then	
-		echo "REMOVE THE EXISTING AUDIT DIRECTORY"
+		echo "REMOVING THE EXISTING AUDIT DIRECTORY"
 		echo "===================================" && echo
 		rm -rfv $destination_holding_dir_fullpath && mkdir $destination_holding_dir_fullpath
 	else
@@ -389,13 +368,13 @@ function encrypt_secret_lists
 	# now to trim that last trailing space character:
 	string_to_send=${string_to_send%[[:blank:]]}
 
-	#echo "string_to_send: ${string_to_send}" && echo ## debug
+	echo "string_to_send: ${string_to_send}" && echo ## debug
 
 	# REMIND ME, WHY ARE WE HERE AGAIN..?
 	# we want to replace EACH destination_output_file_fullpath file that we've written, with an encrypted version\
 	# ... we therefore call gpg-file-encrypt.sh script to handle this file encryption task.
 	## the command argument is deliberately unquoted, so the default\
-	# space character IFS DOES separate the string into arguments
+	# space character IFS DOES/WILL/MUST separate the string into arguments
 	"${command_dirname}/gpg-file-encrypt.sh" $string_to_send
 
 	# reset string_to_send before next drive loop
