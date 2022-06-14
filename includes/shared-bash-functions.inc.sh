@@ -1,1 +1,1 @@
-/home/damola/.local/share/lib10k/shared-bash-functions.inc.sh
+../../shared-functions-library/shared-bash-functions.inc.sh

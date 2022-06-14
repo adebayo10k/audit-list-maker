@@ -1,1 +1,1 @@
-/home/damola/.local/share/lib10k/shared-bash-constants.inc.sh
+../../shared-functions-library/shared-bash-constants.inc.sh
