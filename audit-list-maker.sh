@@ -1,11 +1,11 @@
 #!/bin/bash
-#: Title		:utils.audit-list-maker.sh
+#: Title		:audit-list-maker.sh
 #: Date			:2019-07-05
-#: Author		:adebayo10k
+#: Author		: "Damola Adebayo" <adebayo10k@domain.com>
 #: Version		:
-#: Description	:create independently stored reference listings of the media filenames
+#: Description	:create independently stored reference listings of the files
 #: Description	:on a drive when the backup of those files is not really justified.
-#: Description	:backup, reacquire, recreate, jq reinstall reapply repopulate reinstate rewrite
+#: Description	:backup, reacquire, recreate, jq, reinstall, reapply, repopulate, reinstate, rewrite
 #: Options		:
 
 ## THIS STUFF IS HAPPENING BEFORE MAIN FUNCTION CALL:
@@ -14,7 +14,7 @@ command_fullpath="$(readlink -f $0)"
 command_basename="$(basename $command_fullpath)"
 command_dirname="$(dirname $command_fullpath)"
 
-for file in "${command_dirname}/includes"/*
+for file in "${command_dirname}/includes"/shared-bash-*
 do
 	source "$file"
 done
@@ -85,16 +85,13 @@ function main
 		lib10k_check_program_requirements "${program_dependencies[@]}"
 	fi
 	
-	# check the number of parameters to this program
+	# check the number of parameters to this program.
 	lib10k_check_no_of_program_args
-
-	# controls where this program can be run, to avoid unforseen behaviour
-	lib10k_entry_test
-	
-	# cleanup and validate, test program positional parameters
+	# controls where this program can be run, to avoid unforseen behaviour.
+	lib10k_entry_test	
+	# cleanup, validate and test program positional parameters.
 	# required parameter sequence is : CONFIGURATION_FILE, [MEDIA_DRIVE_ID]...
 	cleanup_and_validate_program_arguments
-
 	# give user option to leave if here in error:
 	lib10k_get_user_permission_to_proceed
 
@@ -146,7 +143,7 @@ function cleanup_and_validate_program_arguments()
 	incoming_array=( $all_the_parameters_string )
 	#echo "incoming_array[@]: ${incoming_array[@]}"
 
-	# TODO: test that element 0 is a valid file
+	# TODO: test that element[0] is a valid file
 		# if so, set the configfile variable
 		# test that remaining elements are valid drive ids, by checking config file
 	
@@ -164,7 +161,8 @@ function cleanup_and_validate_program_arguments()
 
 	# test that ALL remaining elements (program args) are valid drive ids, by checking config file
 	# (that we've just validated) get the drive ids from the configuration file, as a string
-	drive_id_data_string=$(cat "$config_file_fullpath" | jq -r '.mediaDriveAudits[] | .sourceDriveLabel')
+	drive_id_data_string=$(cat "$config_file_fullpath" | \
+	jq -r '.mediaDriveAudits[] | .sourceDriveLabel')
 
 	#echo "drive_id_data_string: $drive_id_data_string"
 	#echo && echo
@@ -397,21 +395,30 @@ function import_audit_configuration()
 
 	######## READ IN DATA FROM THE JSON CONFIGURATION FILE
 
-	sourceDriveLabel=$(cat "$config_file_fullpath" | jq -r --arg media_drive_id "$media_drive_id" '.mediaDriveAudits[] | select(.sourceDriveLabel==$media_drive_id) | .sourceDriveLabel') 
+	sourceDriveLabel=$(cat "$config_file_fullpath" | \
+	jq -r --arg media_drive_id "$media_drive_id" '.mediaDriveAudits[] | \
+	select(.sourceDriveLabel==$media_drive_id) | \
+	.sourceDriveLabel') 
 
 	#echo "sourceDriveLabel: $sourceDriveLabel"
 #	echo && echo
 
 	#########
 
-	source_directory=$(cat "$config_file_fullpath" | jq -r --arg media_drive_id "$media_drive_id" '.mediaDriveAudits[] | select(.sourceDriveLabel==$media_drive_id) | .sourceDirectory') 
+	source_directory=$(cat "$config_file_fullpath" | \
+	jq -r --arg media_drive_id "$media_drive_id" '.mediaDriveAudits[] | \
+	select(.sourceDriveLabel==$media_drive_id) | \
+	.sourceDirectory') 
 
 	#echo "source_directory: $source_directory"
 	#echo && echo
 
 	#########
 
-	subDirsToIgnore=$(cat "$config_file_fullpath" | jq -r --arg media_drive_id "$media_drive_id" '.mediaDriveAudits[] | select(.sourceDriveLabel==$media_drive_id) | .subDirsToIgnore[]')
+	subDirsToIgnore=$(cat "$config_file_fullpath" | \
+	jq -r --arg media_drive_id "$media_drive_id" '.mediaDriveAudits[] | \
+	select(.sourceDriveLabel==$media_drive_id) | \
+	.subDirsToIgnore[]')
 
 	#echo $subDirsToIgnore
 
@@ -420,7 +427,10 @@ function import_audit_configuration()
 
 	#########
 
-	subDirsToKeepSecret=$(cat "$config_file_fullpath" | jq -r --arg media_drive_id "$media_drive_id" '.mediaDriveAudits[] | select(.sourceDriveLabel==$media_drive_id) | .subDirsToKeepSecret[]')
+	subDirsToKeepSecret=$(cat "$config_file_fullpath" | \
+	jq -r --arg media_drive_id "$media_drive_id" '.mediaDriveAudits[] | \
+	select(.sourceDriveLabel==$media_drive_id) | \
+	.subDirsToKeepSecret[]')
 
 	#echo $subDirsToKeepSecret
 
@@ -429,12 +439,15 @@ function import_audit_configuration()
 
 	#########
 
-	destination_directory=$(cat "$config_file_fullpath" | jq -r --arg media_drive_id "$media_drive_id" '.mediaDriveAudits[] | select(.sourceDriveLabel==$media_drive_id) | .destinationDirectory') 
+	destination_directory=$(cat "$config_file_fullpath" | \
+	jq -r --arg media_drive_id "$media_drive_id" '.mediaDriveAudits[] | \
+	select(.sourceDriveLabel==$media_drive_id) | \
+	.destinationDirectory') 
 
 	#echo "destination_directory: $destination_directory"
 	#echo && echo
 
-	######### CONVERT ALL SUBDIRECTORY BASENAMES INTO FULLPATHS, AND ADD THEM TO NEW ARRAYS
+	#Convert of subdirectory basenames into full paths, and add them to new arrays
 	for ((i=0; i<${#sub_dirs_to_ignore_array[@]}; i++));
 	do
 		#echo $source_directory
