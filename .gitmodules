@@ -1,0 +1,6 @@
+[submodule "shared-functions-library"]
+	path = shared-functions-library
+	url = https://github.com/adebayo10k/shared-functions-library
+[submodule "gpg-json-encryption-profiles"]
+	path = gpg-json-encryption-profiles
+	url = https://github.com/adebayo10k/gpg-json-encryption-profiles.git
