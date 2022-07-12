@@ -14,10 +14,18 @@ command_fullpath="$(readlink -f $0)"
 command_basename="$(basename $command_fullpath)"
 command_dirname="$(dirname $command_fullpath)"
 
-for file in "${command_dirname}/includes"/shared-bash-*
-do
-	source "$file"
-done
+if [ -d "${command_dirname}/shared-functions-library" ]
+then
+	for file in "${command_dirname}/shared-functions-library"/shared-bash-*
+	do
+		source "$file"
+	done
+else
+	# return non-zero exit code with native exit
+	echo "Program requires \"${command_dirname}/shared-functions-library\"."
+	echo "Required file not found. Returning exit code 1. Exiting now..."
+	exit 1
+fi
 
 ## THAT STUFF JUST HAPPENED (EXECUTED) BEFORE MAIN FUNCTION CALL!
 
@@ -141,7 +149,7 @@ function cleanup_and_validate_program_arguments()
 	echo "Program Parameters: $all_the_parameters_string" && echo
 
 	incoming_array=( $all_the_parameters_string )
-	#echo "incoming_array[@]: ${incoming_array[@]}"
+	echo "incoming_array[@]: ${incoming_array[@]}"
 
 	# TODO: test that element[0] is a valid file
 		# if so, set the configfile variable
@@ -159,13 +167,13 @@ function cleanup_and_validate_program_arguments()
 	config_file_fullpath="$absolute_path_trimmed" # we're trusting that it's a well formatted json, for now!
 	echo "config filepath: $config_file_fullpath"
 
-	# test that ALL remaining elements (program args) are valid drive ids, by checking config file
+	# QUICK TEST that ALL remaining elements (program args) are valid drive ids, by checking config file
 	# (that we've just validated) get the drive ids from the configuration file, as a string
 	drive_id_data_string=$(cat "$config_file_fullpath" | \
 	jq -r '.mediaDriveAudits[] | .sourceDriveLabel')
 
-	#echo "drive_id_data_string: $drive_id_data_string"
-	#echo && echo
+	echo "drive_id_data_string: $drive_id_data_string"
+	echo && echo
 
 
 	# iterate over program arguments array, starting at element 1
@@ -396,19 +404,22 @@ function import_audit_configuration()
 	######## READ IN DATA FROM THE JSON CONFIGURATION FILE
 
 	sourceDriveLabel=$(cat "$config_file_fullpath" | \
-	jq -r --arg media_drive_id "$media_drive_id" '.mediaDriveAudits[] | \
-	select(.sourceDriveLabel==$media_drive_id) | \
-	.sourceDriveLabel') 
+		jq -r --arg media_drive_id $media_drive_id '.mediaDriveAudits[] |
+		select(.sourceDriveLabel==$media_drive_id) |
+		.sourceDriveLabel'
+	) 
 
-	#echo "sourceDriveLabel: $sourceDriveLabel"
-#	echo && echo
+	echo "sourceDriveLabel: $sourceDriveLabel"
+	echo && echo
 
 	#########
 
 	source_directory=$(cat "$config_file_fullpath" | \
-	jq -r --arg media_drive_id "$media_drive_id" '.mediaDriveAudits[] | \
-	select(.sourceDriveLabel==$media_drive_id) | \
-	.sourceDirectory') 
+		jq -r --arg media_drive_id "$media_drive_id" '.mediaDriveAudits[] |
+		select(.sourceDriveLabel==$media_drive_id) |
+		.sourceDirectory'
+	)
+		 
 
 	#echo "source_directory: $source_directory"
 	#echo && echo
@@ -416,9 +427,10 @@ function import_audit_configuration()
 	#########
 
 	subDirsToIgnore=$(cat "$config_file_fullpath" | \
-	jq -r --arg media_drive_id "$media_drive_id" '.mediaDriveAudits[] | \
-	select(.sourceDriveLabel==$media_drive_id) | \
-	.subDirsToIgnore[]')
+		jq -r --arg media_drive_id "$media_drive_id" '.mediaDriveAudits[] |
+		select(.sourceDriveLabel==$media_drive_id) |
+		.subDirsToIgnore[]'
+	)
 
 	#echo $subDirsToIgnore
 
@@ -428,9 +440,10 @@ function import_audit_configuration()
 	#########
 
 	subDirsToKeepSecret=$(cat "$config_file_fullpath" | \
-	jq -r --arg media_drive_id "$media_drive_id" '.mediaDriveAudits[] | \
-	select(.sourceDriveLabel==$media_drive_id) | \
-	.subDirsToKeepSecret[]')
+		jq -r --arg media_drive_id "$media_drive_id" '.mediaDriveAudits[] |
+		select(.sourceDriveLabel==$media_drive_id) |
+		.subDirsToKeepSecret[]'
+	)
 
 	#echo $subDirsToKeepSecret
 
@@ -440,9 +453,11 @@ function import_audit_configuration()
 	#########
 
 	destination_directory=$(cat "$config_file_fullpath" | \
-	jq -r --arg media_drive_id "$media_drive_id" '.mediaDriveAudits[] | \
-	select(.sourceDriveLabel==$media_drive_id) | \
-	.destinationDirectory') 
+		jq -r --arg media_drive_id "$media_drive_id" '.mediaDriveAudits[] |
+		select(.sourceDriveLabel==$media_drive_id) |
+		.destinationDirectory'
+	)
+	 
 
 	#echo "destination_directory: $destination_directory"
 	#echo && echo
