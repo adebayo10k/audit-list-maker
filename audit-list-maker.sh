@@ -110,8 +110,10 @@ function main
 	then		
 		lib10k_display_current_config_file
 
-		# for-loop over
+		# audit the contents of each media drive
 		# incoming array is visible here too! ok cool.
+		# subtract the number of program parameters that are NOT \
+		# media_drive_ids (just the config file at elem_num 0 for now).
 		for elem_num in $(seq 1 $(( ${#incoming_array[@]}-1 ))) #
 		do
 			#echo -n "$elem_num."
@@ -124,9 +126,18 @@ function main
 			if [ ${#file_fullpaths_to_encrypt[@]} -gt 0 ]
 			then
 				encrypt_secret_lists
+				echo && \
+				echo "JUST GOT BACK FROM ENCRYPTION SERVICES" && \
+				echo && echo
 			fi
-			echo && echo "JUST GOT BACK FROM ENCRYPTION SERVICES"
-			echo && echo "|||||||||||  NEXT DEVICE..... ||||||||||||" && echo && echo
+			
+			# output message after all but last media drive audit
+			if [ $elem_num -lt $(( ${#incoming_array[@]}-1 )) ]
+			then
+				echo && \
+				echo "|||||||||||  NEXT DEVICE..... ||||||||||||" && \
+				echo && echo
+			fi
 
 		done
 		
@@ -167,14 +178,13 @@ function cleanup_and_validate_program_arguments()
 	config_file_fullpath="$absolute_path_trimmed" # we're trusting that it's a well formatted json, for now!
 	echo "config filepath: $config_file_fullpath"
 
-	# QUICK TEST that ALL remaining elements (program args) are valid drive ids, by checking config file
+	# Test that ALL remaining elements (program args) are valid drive ids, by checking config file
 	# (that we've just validated) get the drive ids from the configuration file, as a string
 	drive_id_data_string=$(cat "$config_file_fullpath" | \
-	jq -r '.mediaDriveAudits[] | .sourceDriveLabel')
-
-	echo "drive_id_data_string: $drive_id_data_string"
-	echo && echo
-
+	jq -r '.mediaDriveAudits[] | .sourceDriveLabel' \
+	)
+	#echo "drive_id_data_string: $drive_id_data_string"
+	#echo && echo
 
 	# iterate over program arguments array, starting at element 1
 	for elem_num in $(seq 1 $(( ${#incoming_array[@]}-1 )))
@@ -346,7 +356,8 @@ function write_src_media_filenames_to_dst_files
 		# TODO: better to use `find`or `du -...`, 
 		# and specify a list of file extensions of interest - investigate later
 
-		## TODO: WE JUST WANT THE COUNT HERE, SO REDIRECT OR PIPE TO sed || USE VARIABLE EXPANSION ON A VARIABLE
+		## TODO: WE JUST WANT THE COUNT HERE, SO REDIRECT OR \
+		## PIPE TO sed || USE VARIABLE EXPANSION ON A VARIABLE
 		echo "LINE COUNT FOR OUTPUT FILE: $(wc -l "$destination_output_file_fullpath") " && echo
 
 	done	
@@ -409,8 +420,8 @@ function import_audit_configuration()
 		.sourceDriveLabel'
 	) 
 
-	echo "sourceDriveLabel: $sourceDriveLabel"
-	echo && echo
+	#echo "sourceDriveLabel: $sourceDriveLabel"
+	#echo && echo
 
 	#########
 
@@ -494,7 +505,8 @@ function import_audit_configuration()
 
 	##########  NOW DO ALL THE DIRECTORY ACCESS TESTS FOR IMPORTED PATH VALUES HERE.
 	##########  REMEMBER THAT ORDER IS IMPORTANT, AS RELATIVE PATHS DEPEND ON ABSOLUTE.
-	for dir in "${directories_to_ignore[@]}" "${secret_content_directories[@]}" "$source_holding_dir_fullpath" "$destination_holding_dir_fullpath"
+	for dir in "${directories_to_ignore[@]}" "${secret_content_directories[@]}" \
+	"$source_holding_dir_fullpath" "$destination_holding_dir_fullpath"
 	do
 
 		# this valid form test works for sanitised directory paths
@@ -552,14 +564,14 @@ function test_for_secret_dir
 		if [[ "$test_subdir_fullpath" == "$secret_subdir_fullpath" ]]
 		then
 			echo "TEST FOUND A MATCH TO LABEL SECRET!!!!!!!!!!!!!!!!!############0000000000 $test_subdir_fullpath "
-			result=0 # found, so break out of for loop
-			return "$result" # found, so break out of for loop
+			result=0 # found, success
+			return "$result" # found, so break loop and return from function
 		else 
 			result=1
 		fi
 	done
 
-	return "$result" # returns 1 for failing to find a match
+	return "$result" # returns 1 when match failed
 
 }
 
@@ -581,14 +593,14 @@ function test_for_ignore_subdir
 
 		then
 			echo "TEST FOUND A MATCH TO IGNORE!!!!!!!!!!!!!!!!!############0000000000 $test_subdir_fullpath "
-			result=0 # found, so break out of for loop
-			return "$result" # found, so break out of for loop
+			result=0 # found, success
+			return "$result" # found, so break loop and return from function
 		else 
 			result=1
 		fi
 	done
 
-	return "$result" # returns 1 for failing to find a match
+	return "$result" # returns 1 when match failed
 
 }
 
