@@ -392,7 +392,7 @@ function encrypt_secret_lists
 	# ... we therefore call gpg-file-encrypt.sh script to handle this file encryption task.
 	## the command argument is deliberately unquoted, so the default\
 	# space character IFS DOES/WILL/MUST separate the string into arguments
-	"${command_dirname}/gpg-json-encryption-profiles/gpg-file-encrypt.sh" $string_to_send
+	"${command_dirname}/gpg-encryption-using-json-profiles/gpg-file-encrypt.sh" $string_to_send
 
 	# reset string_to_send before next drive loop
 	string_to_send=""
